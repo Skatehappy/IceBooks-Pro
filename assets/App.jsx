@@ -300,9 +300,18 @@ export default function App() {
         );
       } else {
         // Client: load their own clients/students
+        const { data: clientsData } = await supabase.from('clients').select('*').eq('profile_id', prof.id);
+        const clientIds = (clientsData || []).map(c => c.id);
+        
+        let studentsData = [];
+        if (clientIds.length > 0) {
+          const { data } = await supabase.from('students').select('*').in('client_id', clientIds);
+          studentsData = data || [];
+        }
+        
         promises.push(
-          supabase.from('clients').select('*').eq('profile_id', prof.id),
-          supabase.from('students').select('*, clients!inner(profile_id)').eq('clients.profile_id', prof.id),
+          Promise.resolve({ data: clientsData }),
+          Promise.resolve({ data: studentsData }),
           supabase.from('bookings').select('*')
         );
       }
@@ -990,15 +999,20 @@ export default function App() {
         // No child name = client IS the student (adult)
         const studentData = {
           client_id: clientId,
-          name: clientData.name,
-          email: clientData.email || null,
+          name: clientForm.name,
+          email: clientForm.email || null,
           birthdate: null,
-          isi_level: '',
-          usfsa_level: '',
+          isi_level: child_isi_level || '',
+          usfsa_level: child_usfsa_level || '',
           notes: 'Adult student'
         };
-        await supabase.from('students').insert(studentData);
-        notify('Student record created');
+        const { error: studentError } = await supabase.from('students').insert(studentData);
+        if (studentError) {
+          console.error('Student insert error:', studentError);
+          notify('Client saved but student creation failed: ' + studentError.message);
+        } else {
+          notify('Student record created');
+        }
       }
       
       setShowModal(null);
@@ -1030,6 +1044,7 @@ export default function App() {
       setStudentForm({
         client_id: student.client_id,
         name: student.name || '',
+        email: student.email || '',
         birthdate: student.birthdate || '',
         isi_level: student.isi_level || '',
         usfsa_level: student.usfsa_level || '',
@@ -1041,7 +1056,7 @@ export default function App() {
       setEditingItem(null);
       setStudentForm({
         client_id: clientId || (clients[0]?.id || ''),
-        name: '', birthdate: '', isi_level: '', usfsa_level: '',
+        name: '', email: '', birthdate: '', isi_level: '', usfsa_level: '',
         isi_number: '', usfsa_number: '', notes: ''
       });
     }
@@ -1051,6 +1066,25 @@ export default function App() {
   const saveStudent = async () => {
     try {
       const data = { ...studentForm };
+      
+      // If name is blank, default to parent's name
+      if (!data.name || !data.name.trim()) {
+        const parentClient = clients.find(c => c.id === data.client_id);
+        if (parentClient) {
+          data.name = parentClient.name;
+          // Also default email to parent's email if student email is blank
+          if (!data.email || !data.email.trim()) {
+            data.email = parentClient.email || null;
+          }
+        }
+      }
+      
+      // Ensure we have a name
+      if (!data.name || !data.name.trim()) {
+        notify('Please enter a student name');
+        return;
+      }
+      
       if (editingItem) {
         const { error } = await supabase.from('students').update(data).eq('id', editingItem.id);
         if (error) throw error;
@@ -3401,12 +3435,24 @@ export default function App() {
                 </div>
                 <div style={styles.row}>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Student Name *</label>
-                    <input type="text" style={styles.input} value={studentForm.name} onChange={e => setStudentForm({ ...studentForm, name: e.target.value })} required />
+                    <label style={styles.label}>Student Name {isCoach ? '*' : ''}</label>
+                    <input 
+                      type="text" 
+                      style={styles.input} 
+                      value={studentForm.name} 
+                      onChange={e => setStudentForm({ ...studentForm, name: e.target.value })} 
+                      placeholder={isCoach ? '' : 'Leave blank to add yourself'}
+                    />
                   </div>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>Email (for self-login)</label>
-                    <input type="email" style={styles.input} value={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} placeholder="Optional - for student login" />
+                    <label style={styles.label}>Email</label>
+                    <input 
+                      type="email" 
+                      style={styles.input} 
+                      value={studentForm.email} 
+                      onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} 
+                      placeholder={isCoach ? 'Optional' : 'Optional (uses yours if blank)'}
+                    />
                   </div>
                 </div>
                 <div style={styles.formGroup}>
