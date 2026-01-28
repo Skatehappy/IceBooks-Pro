@@ -945,7 +945,8 @@ export default function App() {
       setEditingItem(null);
       setClientForm({
         name: '', email: '', phone: '', address: '', city: '', state: '', zip: '',
-        parent2_name: '', parent2_email: '', parent2_phone: '', notes: ''
+        parent2_name: '', parent2_email: '', parent2_phone: '', notes: '',
+        child_name: '', child_email: '', child_birthdate: '', child_isi_level: '', child_usfsa_level: ''
       });
     }
     setShowModal('client');
@@ -971,19 +972,21 @@ export default function App() {
       }
       
       // Auto-create student if child name provided
-      if (!editingItem && child_name.trim()) {
+      const childName = child_name || '';
+      const childEmail = child_email || '';
+      if (!editingItem && childName.trim()) {
         const studentData = {
           client_id: clientId,
-          name: child_name.trim(),
-          email: child_email.trim() || null,
+          name: childName.trim(),
+          email: childEmail.trim() || null,
           birthdate: child_birthdate || null,
           isi_level: child_isi_level || '',
           usfsa_level: child_usfsa_level || '',
           notes: ''
         };
         await supabase.from('students').insert(studentData);
-        notify('Student created for ' + child_name);
-      } else if (!editingItem && !child_name.trim()) {
+        notify('Student created for ' + childName);
+      } else if (!editingItem && !childName.trim()) {
         // No child name = client IS the student (adult)
         const studentData = {
           client_id: clientId,
