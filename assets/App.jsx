@@ -1,5 +1,5 @@
 /**
- * IceBooks Pro v4.5.1
+ * IceBooks Pro v4.5.2
  * Complete Figure Skating Coach Business Management
  * © 2026 The Super Simple Software Company
  * Distributed by BuyAppsOnce | https://buyappsonce.com
@@ -1085,13 +1085,22 @@ export default function App() {
       const lesson = lessons.find(l => l.id === lessonId);
       if (!lesson) throw new Error('Lesson not found');
 
-      const lessonBookings = bookings.filter(b => b.lesson_id === lessonId && b.status !== 'cancelled');
-      if (lessonBookings.length >= lesson.max_students) {
+      // Fetch fresh booking count from database to prevent race conditions
+      const { data: freshBookings, error: fetchError } = await supabase
+        .from('bookings')
+        .select('id, student_id')
+        .eq('lesson_id', lessonId)
+        .neq('status', 'cancelled');
+      
+      if (fetchError) throw fetchError;
+      
+      if (freshBookings.length >= lesson.max_students) {
         notify('Lesson is full');
+        loadData(profile); // Refresh UI
         return;
       }
 
-      const alreadyBooked = lessonBookings.find(b => b.student_id === studentId);
+      const alreadyBooked = freshBookings.find(b => b.student_id === studentId);
       if (alreadyBooked) {
         notify('Student already booked');
         return;
@@ -1868,7 +1877,9 @@ export default function App() {
               {dayLessons.sort((a, b) => a.start_time.localeCompare(b.start_time)).map(l => {
                 const lt = getLessonType(l.lesson_type);
                 const venue = venues.find(v => v.id === l.venue_id);
-                const booked = bookings.filter(b => b.lesson_id === l.id && b.status !== 'cancelled').length;
+                const lessonBookings = bookings.filter(b => b.lesson_id === l.id && b.status !== 'cancelled');
+                const booked = lessonBookings.length;
+                const bookedNames = lessonBookings.map(b => students.find(s => s.id === b.student_id)?.name).filter(Boolean);
                 return (
                   <div 
                     key={`l-${l.id}`} 
@@ -1881,6 +1892,11 @@ export default function App() {
                     onClick={(ev) => { ev.stopPropagation(); openLessonModal(l); }}
                   >
                     {formatTime(l.start_time)} {lt.icon} {booked}/{l.max_students}
+                    {bookedNames.length > 0 && (
+                      <div style={{ fontSize: 10, opacity: 0.9, marginTop: 2, fontWeight: 400 }}>
+                        {bookedNames.join(', ')}
+                      </div>
+                    )}
                     {venue?.color && (
                       <span style={{
                         position: 'absolute',
@@ -2938,19 +2954,51 @@ export default function App() {
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Select Student</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {students.map(s => (
-                      <button
-                        key={s.id}
-                        style={{ ...styles.btn, ...styles.btnPrimary, textAlign: 'left' }}
-                        onClick={() => {
-                          bookLesson(bookingLesson.id, s.id);
-                          setBookingLesson(null);
-                        }}
-                      >
-                        {s.name}
-                      </button>
-                    ))}
+                    {(() => {
+                      const lessonBookings = bookings.filter(b => b.lesson_id === bookingLesson.id && b.status !== 'cancelled');
+                      const bookedStudentIds = lessonBookings.map(b => b.student_id);
+                      const spotsRemaining = bookingLesson.max_students - lessonBookings.length;
+                      const availableStudents = students.filter(s => !bookedStudentIds.includes(s.id));
+                      
+                      if (spotsRemaining <= 0) {
+                        return (
+                          <div style={{ padding: 12, background: '#fef3c7', borderRadius: 8, color: '#92400e' }}>
+                            This lesson is now full. Please select a different time.
+                          </div>
+                        );
+                      }
+                      
+                      if (availableStudents.length === 0) {
+                        return (
+                          <div style={{ padding: 12, background: '#f0fdf4', borderRadius: 8, color: '#166534' }}>
+                            All your students are already booked for this lesson.
+                          </div>
+                        );
+                      }
+                      
+                      return availableStudents.map(s => (
+                        <button
+                          key={s.id}
+                          style={{ ...styles.btn, ...styles.btnPrimary, textAlign: 'left' }}
+                          onClick={() => {
+                            bookLesson(bookingLesson.id, s.id);
+                            setBookingLesson(null);
+                          }}
+                        >
+                          {s.name}
+                        </button>
+                      ));
+                    })()}
                   </div>
+                  {(() => {
+                    const lessonBookings = bookings.filter(b => b.lesson_id === bookingLesson.id && b.status !== 'cancelled');
+                    const spotsRemaining = bookingLesson.max_students - lessonBookings.length;
+                    return (
+                      <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
+                        {spotsRemaining} of {bookingLesson.max_students} spot{bookingLesson.max_students !== 1 ? 's' : ''} available
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
