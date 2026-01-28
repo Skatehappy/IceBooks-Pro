@@ -30,7 +30,7 @@
  * - Mobile responsive
  */
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = window.supabase || { createClient: () => ({ auth: { getSession: () => Promise.resolve({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) }, from: () => ({ select: () => ({ order: () => Promise.resolve({ data: [] }), eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }), single: () => Promise.resolve({ data: null }) }) }) }) };
 
 // Runtime config (from config.js) or build-time env vars
 const supabaseUrl = window.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '';
