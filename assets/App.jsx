@@ -66,14 +66,92 @@ const EXPENSE_CATEGORIES = [
 
 const PAYMENT_METHODS = ['Cash', 'Check', 'Venmo', 'PayPal', 'Zelle', 'Credit Card', 'Bank Transfer'];
 
-// ISI Levels
-const ISI_LEVELS = [
-  '-- Tot --', 'Tot 1', 'Tot 2', 'Tot 3', 'Tot 4',
-  '-- Basic --', 'Pre-Alpha', 'Alpha', 'Beta', 'Gamma', 'Delta',
-  '-- Freestyle --', 'FS 1', 'FS 2', 'FS 3', 'FS 4', 'FS 5', 'FS 6', 'FS 7', 'FS 8', 'FS 9', 'FS 10', 'Open FS',
-  '-- Dance --', 'Dance 1', 'Dance 2', 'Dance 3', 'Dance 4', 'Dance 5', 'Dance 6', 'Dance 7', 'Dance 8', 'Dance 9', 'Dance 10',
-  '-- Pair --', 'Pair 1', 'Pair 2', 'Pair 3', 'Pair 4',
-  '-- Synchronized --', 'Sync Skating'
+// ISI Levels - Primary Freestyle Progression
+const ISI_FREESTYLE_LEVELS = [
+  'Tots', 'Pre-Alpha', 'Alpha', 'Beta', 'Gamma', 'Delta',
+  'Freestyle 1', 'Freestyle 2', 'Freestyle 3', 'Freestyle 4', 'Freestyle 5', 
+  'Freestyle 6', 'Freestyle 7', 'Freestyle 8', 'Freestyle 9', 'Freestyle 10',
+  'Open Freestyle Bronze', 'Open Freestyle Silver', 'Open Freestyle Gold', 'Open Freestyle Platinum'
+];
+
+// ISI Figures (1-10)
+const ISI_FIGURES_LEVELS = Array.from({length: 10}, (_, i) => `Figures ${i + 1}`);
+
+// ISI Couples (1-10)
+const ISI_COUPLES_LEVELS = Array.from({length: 10}, (_, i) => `Couples ${i + 1}`);
+
+// ISI Pairs (1-10)
+const ISI_PAIRS_LEVELS = Array.from({length: 10}, (_, i) => `Pairs ${i + 1}`);
+
+// ISI Ice Dance (1-10)
+const ISI_ICEDANCE_LEVELS = Array.from({length: 10}, (_, i) => `Ice Dance ${i + 1}`);
+
+// ISI International Dance (USFSA Pattern Dances in proper order)
+const ISI_INTERNATIONAL_DANCE_PRELIMINARY = ['Dutch Waltz', 'Canasta Tango', 'Rhythm Blues'];
+const ISI_INTERNATIONAL_DANCE_PREBRONZE = ['Swing Dance', 'Cha Cha', 'Fiesta Tango'];
+const ISI_INTERNATIONAL_DANCE_BRONZE = ['Hickory Hoedown', 'Willow Waltz', 'Ten-Fox'];
+const ISI_INTERNATIONAL_DANCE_PRESILVER = ['Fourteenstep', 'European Waltz', 'Foxtrot'];
+const ISI_INTERNATIONAL_DANCE_SILVER = ['American Waltz', 'Tango', 'Rocker Foxtrot'];
+const ISI_INTERNATIONAL_DANCE_PREGOLD = ['Kilian', 'Blues', 'Paso Doble', 'Starlight Waltz'];
+const ISI_INTERNATIONAL_DANCE_GOLD = ['Viennese Waltz', 'Westminster Waltz', 'Quickstep', 'Argentine Tango'];
+const ISI_INTERNATIONAL_DANCE_INTERNATIONAL = [
+  'Austrian Waltz', 'Cha Cha Congelado', 'Finnstep', 'Golden Waltz', 
+  'Midnight Blues', 'Ravensburger Waltz', 'Rhumba', 'Silver Samba', 
+  'Tango Romantica', 'Yankee Polka'
+];
+
+// ISI Free Dance Partnered (1-10)
+const ISI_FREEDANCE_PARTNERED_LEVELS = Array.from({length: 10}, (_, i) => `Free Dance Partnered ${i + 1}`);
+
+// ISI Open Solo Free Dance (Bronze through Diamond)
+const ISI_SOLO_FREEDANCE_LEVELS = [
+  'Open Solo Free Dance Bronze',
+  'Open Solo Free Dance Silver', 
+  'Open Solo Free Dance Gold',
+  'Open Solo Free Dance Platinum',
+  'Open Solo Free Dance Diamond'
+];
+
+// ISI Synchronized Skating (1-4)
+const ISI_SYNCHRO_LEVELS = Array.from({length: 4}, (_, i) => `Synchro ${i + 1}`);
+
+// ISI Special Skater (1-10)
+const ISI_SPECIAL_SKATER_LEVELS = Array.from({length: 10}, (_, i) => `Special Skater ${i + 1}`);
+
+// USFSA Test Levels - Skating Skills (Moves in the Field)
+const USFSA_SKATING_SKILLS = [
+  'Pre-Preliminary', 'Preliminary', 'Pre-Juvenile', 'Juvenile', 
+  'Intermediate', 'Novice', 'Junior', 'Senior'
+];
+
+// USFSA Test Levels - Singles (Free Skate)
+const USFSA_SINGLES = [
+  'Pre-Preliminary', 'Preliminary', 'Pre-Juvenile', 'Juvenile', 
+  'Intermediate', 'Novice', 'Junior', 'Senior'
+];
+
+// USFSA Pattern Dance Levels
+const USFSA_PATTERN_DANCE = [
+  'Preliminary', 'Pre-Bronze', 'Bronze', 'Pre-Silver', 
+  'Silver', 'Pre-Gold', 'Gold', 'International'
+];
+
+// USFSA Free Dance Levels
+const USFSA_FREE_DANCE = [
+  'Juvenile/Bronze', 'Intermediate/Pre-Silver', 'Novice/Silver', 
+  'Junior/Pre-Gold', 'Senior/Gold'
+];
+
+// USFSA Pairs Levels
+const USFSA_PAIRS = [
+  'Preliminary', 'Juvenile', 'Intermediate', 
+  'Novice', 'Junior', 'Senior'
+];
+
+// Adult Track Options
+const USFSA_ADULT_LEVELS = [
+  'Adult Pre-Bronze', 'Adult Bronze', 'Adult Silver', 'Adult Gold',
+  'Adult Intermediate', 'Adult Novice', 'Adult Junior', 'Adult Senior'
 ];
 
 // USFSA / Learn to Skate USA Levels
@@ -150,14 +228,35 @@ export default function App() {
   const [clientForm, setClientForm] = useState({
     name: '', email: '', phone: '', address: '', city: '', state: '', zip: '',
     parent2_name: '', parent2_email: '', parent2_phone: '', notes: '',
-    // Child fields for auto-creating student
-    child_name: '', child_email: '', child_birthdate: '', child_isi_level: '', child_usfsa_level: ''
+    // Child fields for auto-creating student - NO skill levels (those go on student form only)
+    child_name: '', child_email: '', child_birthdate: ''
   });
 
   // Student Form State
   const [studentForm, setStudentForm] = useState({
-    client_id: '', name: '', email: '', birthdate: '', isi_level: '', usfsa_level: '',
-    isi_number: '', usfsa_number: '', notes: ''
+    client_id: '', name: '', email: '', birthdate: '',
+    // ISI Disciplines
+    isi_freestyle: '',
+    isi_figures: '',
+    isi_couples: '',
+    isi_pairs: '',
+    isi_icedance: '',
+    isi_international_dance_level: '',  // Stores which level (Preliminary, Pre-Bronze, etc.)
+    isi_international_dances: '',       // Stores specific dances passed
+    isi_freedance_partnered: '',
+    isi_solo_freedance: '',
+    isi_synchro: '',
+    isi_special_skater: '',
+    isi_number: '',
+    // USFSA Disciplines
+    usfsa_skating_skills: '',
+    usfsa_singles: '',
+    usfsa_pattern_dance_level: '',      // Stores which level
+    usfsa_pattern_dances: '',           // Stores specific dances passed
+    usfsa_free_dance: '',
+    usfsa_pairs: '',
+    usfsa_number: '',
+    notes: ''
   });
 
   // Invoice Form State
@@ -955,7 +1054,7 @@ export default function App() {
       setClientForm({
         name: '', email: '', phone: '', address: '', city: '', state: '', zip: '',
         parent2_name: '', parent2_email: '', parent2_phone: '', notes: '',
-        child_name: '', child_email: '', child_birthdate: '', child_isi_level: '', child_usfsa_level: ''
+        child_name: '', child_email: '', child_birthdate: ''
       });
     }
     setShowModal('client');
@@ -964,7 +1063,7 @@ export default function App() {
   const saveClient = async () => {
     try {
       // Separate child fields from client data
-      const { child_name, child_email, child_birthdate, child_isi_level, child_usfsa_level, ...clientData } = clientForm;
+      const { child_name, child_email, child_birthdate, ...clientData } = clientForm;
       if (!isCoach) clientData.profile_id = profile.id;
       
       let clientId = editingItem?.id;
@@ -980,7 +1079,7 @@ export default function App() {
         notify('Client added');
       }
       
-      // Auto-create student if child name provided
+      // Auto-create student if child name provided (NO skill levels - those are added on student form)
       const childName = child_name || '';
       const childEmail = child_email || '';
       if (!editingItem && childName.trim()) {
@@ -989,12 +1088,10 @@ export default function App() {
           name: childName.trim(),
           email: childEmail.trim() || null,
           birthdate: child_birthdate || null,
-          isi_level: child_isi_level || '',
-          usfsa_level: child_usfsa_level || '',
           notes: ''
         };
         await supabase.from('students').insert(studentData);
-        notify('Student created for ' + childName);
+        notify('Student created for ' + childName + ' - Edit student to add skill levels');
       } else if (!editingItem && !childName.trim()) {
         // No child name = client IS the student (adult)
         const studentData = {
@@ -1002,8 +1099,6 @@ export default function App() {
           name: clientForm.name,
           email: clientForm.email || null,
           birthdate: null,
-          isi_level: child_isi_level || '',
-          usfsa_level: child_usfsa_level || '',
           notes: 'Adult student'
         };
         const { error: studentError } = await supabase.from('students').insert(studentData);
@@ -1011,7 +1106,7 @@ export default function App() {
           console.error('Student insert error:', studentError);
           notify('Client saved but student creation failed: ' + studentError.message);
         } else {
-          notify('Student record created');
+          notify('Student record created - Edit to add skill levels');
         }
       }
       
@@ -1046,9 +1141,26 @@ export default function App() {
         name: student.name || '',
         email: student.email || '',
         birthdate: student.birthdate || '',
-        isi_level: student.isi_level || '',
-        usfsa_level: student.usfsa_level || '',
+        // ISI
+        isi_freestyle: student.isi_freestyle || '',
+        isi_figures: student.isi_figures || '',
+        isi_couples: student.isi_couples || '',
+        isi_pairs: student.isi_pairs || '',
+        isi_icedance: student.isi_icedance || '',
+        isi_international_dance_level: student.isi_international_dance_level || '',
+        isi_international_dances: student.isi_international_dances || '',
+        isi_freedance_partnered: student.isi_freedance_partnered || '',
+        isi_solo_freedance: student.isi_solo_freedance || '',
+        isi_synchro: student.isi_synchro || '',
+        isi_special_skater: student.isi_special_skater || '',
         isi_number: student.isi_number || '',
+        // USFSA
+        usfsa_skating_skills: student.usfsa_skating_skills || '',
+        usfsa_singles: student.usfsa_singles || '',
+        usfsa_pattern_dance_level: student.usfsa_pattern_dance_level || '',
+        usfsa_pattern_dances: student.usfsa_pattern_dances || '',
+        usfsa_free_dance: student.usfsa_free_dance || '',
+        usfsa_pairs: student.usfsa_pairs || '',
         usfsa_number: student.usfsa_number || '',
         notes: student.notes || ''
       });
@@ -1056,8 +1168,29 @@ export default function App() {
       setEditingItem(null);
       setStudentForm({
         client_id: clientId || (clients[0]?.id || ''),
-        name: '', email: '', birthdate: '', isi_level: '', usfsa_level: '',
-        isi_number: '', usfsa_number: '', notes: ''
+        name: '', email: '', birthdate: '',
+        // ISI
+        isi_freestyle: '',
+        isi_figures: '',
+        isi_couples: '',
+        isi_pairs: '',
+        isi_icedance: '',
+        isi_international_dance_level: '',
+        isi_international_dances: '',
+        isi_freedance_partnered: '',
+        isi_solo_freedance: '',
+        isi_synchro: '',
+        isi_special_skater: '',
+        isi_number: '',
+        // USFSA
+        usfsa_skating_skills: '',
+        usfsa_singles: '',
+        usfsa_pattern_dance_level: '',
+        usfsa_pattern_dances: '',
+        usfsa_free_dance: '',
+        usfsa_pairs: '',
+        usfsa_number: '',
+        notes: ''
       });
     }
     setShowModal('student');
@@ -3391,22 +3524,6 @@ export default function App() {
                       <label style={styles.label}>Child Email (for self-login)</label>
                       <input type="email" style={styles.input} value={clientForm.child_email} onChange={e => setClientForm({ ...clientForm, child_email: e.target.value })} />
                     </div>
-                    <div style={styles.row}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>ISI Level</label>
-                        <select style={styles.select} value={clientForm.child_isi_level} onChange={e => setClientForm({ ...clientForm, child_isi_level: e.target.value })}>
-                          <option value="">Select ISI level...</option>
-                          {ISI_LEVELS.map(l => <option key={l} value={l.startsWith('--') ? '' : l} disabled={l.startsWith('--')}>{l}</option>)}
-                        </select>
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>USFSA Level</label>
-                        <select style={styles.select} value={clientForm.child_usfsa_level} onChange={e => setClientForm({ ...clientForm, child_usfsa_level: e.target.value })}>
-                          <option value="">Select USFSA level...</option>
-                          {USFSA_LEVELS.map(l => <option key={l} value={l.startsWith('--') ? '' : l} disabled={l.startsWith('--')}>{l}</option>)}
-                        </select>
-                      </div>
-                    </div>
                   </>
                 )}
               </div>
@@ -3459,32 +3576,219 @@ export default function App() {
                   <label style={styles.label}>Birthdate</label>
                   <input type="date" style={styles.input} value={studentForm.birthdate} onChange={e => setStudentForm({ ...studentForm, birthdate: e.target.value })} />
                 </div>
+
+                {/* ========== ISI SKILL LEVELS ========== */}
+                <hr style={{ margin: '20px 0', border: 'none', borderTop: '2px solid #3b82f6' }} />
+                <h3 style={{ marginBottom: 16, color: '#1e40af' }}>ISI Skill Levels</h3>
+
+                {/* Row 1: Freestyle & Figures */}
                 <div style={styles.row}>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>ISI Level</label>
-                    <select style={styles.select} value={studentForm.isi_level} onChange={e => setStudentForm({ ...studentForm, isi_level: e.target.value })}>
-                      <option value="">Select ISI level...</option>
-                      {ISI_LEVELS.map(l => <option key={l} value={l.startsWith('--') ? '' : l} disabled={l.startsWith('--')}>{l}</option>)}
+                    <label style={styles.label}>ISI Freestyle Level</label>
+                    <select style={styles.select} value={studentForm.isi_freestyle} onChange={e => setStudentForm({ ...studentForm, isi_freestyle: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_FREESTYLE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   </div>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>ISI Number</label>
-                    <input type="text" style={styles.input} value={studentForm.isi_number} onChange={e => setStudentForm({ ...studentForm, isi_number: e.target.value })} />
+                    <label style={styles.label}>ISI Figures</label>
+                    <select style={styles.select} value={studentForm.isi_figures} onChange={e => setStudentForm({ ...studentForm, isi_figures: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_FIGURES_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
                   </div>
                 </div>
+
+                {/* Row 2: Couples & Pairs */}
                 <div style={styles.row}>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>USFSA Level</label>
-                    <select style={styles.select} value={studentForm.usfsa_level} onChange={e => setStudentForm({ ...studentForm, usfsa_level: e.target.value })}>
-                      <option value="">Select USFSA level...</option>
-                      {USFSA_LEVELS.map(l => <option key={l} value={l.startsWith('--') ? '' : l} disabled={l.startsWith('--')}>{l}</option>)}
+                    <label style={styles.label}>ISI Couples</label>
+                    <select style={styles.select} value={studentForm.isi_couples} onChange={e => setStudentForm({ ...studentForm, isi_couples: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_COUPLES_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   </div>
                   <div style={styles.formGroup}>
-                    <label style={styles.label}>USFSA Number</label>
-                    <input type="text" style={styles.input} value={studentForm.usfsa_number} onChange={e => setStudentForm({ ...studentForm, usfsa_number: e.target.value })} />
+                    <label style={styles.label}>ISI Pairs</label>
+                    <select style={styles.select} value={studentForm.isi_pairs} onChange={e => setStudentForm({ ...studentForm, isi_pairs: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_PAIRS_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
                   </div>
                 </div>
+
+                {/* Row 3: Ice Dance & Pattern Dance Level */}
+                <div style={styles.row}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>ISI Ice Dance</label>
+                    <select style={styles.select} value={studentForm.isi_icedance} onChange={e => setStudentForm({ ...studentForm, isi_icedance: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_ICEDANCE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>ISI Pattern Dance Level</label>
+                    <select style={styles.select} value={studentForm.isi_international_dance_level} onChange={e => setStudentForm({ ...studentForm, isi_international_dance_level: e.target.value })}>
+                      <option value="">Select level...</option>
+                      <option value="Preliminary">Preliminary</option>
+                      <option value="Pre-Bronze">Pre-Bronze</option>
+                      <option value="Bronze">Bronze</option>
+                      <option value="Pre-Silver">Pre-Silver</option>
+                      <option value="Silver">Silver</option>
+                      <option value="Pre-Gold">Pre-Gold</option>
+                      <option value="Gold">Gold</option>
+                      <option value="International">International</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Pattern Dance - Dances Passed (conditional based on level selected) */}
+                {studentForm.isi_international_dance_level && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      Pattern Dances Passed ({studentForm.isi_international_dance_level})
+                    </label>
+                    <input 
+                      type="text" 
+                      style={styles.input} 
+                      value={studentForm.isi_international_dances} 
+                      onChange={e => setStudentForm({ ...studentForm, isi_international_dances: e.target.value })}
+                      placeholder={
+                        studentForm.isi_international_dance_level === 'Preliminary' ? 'e.g., Dutch Waltz, Canasta Tango' :
+                        studentForm.isi_international_dance_level === 'Pre-Bronze' ? 'e.g., Swing Dance, Cha Cha' :
+                        studentForm.isi_international_dance_level === 'Bronze' ? 'e.g., Hickory Hoedown, Ten-Fox' :
+                        studentForm.isi_international_dance_level === 'Pre-Silver' ? 'e.g., Fourteenstep, Foxtrot' :
+                        studentForm.isi_international_dance_level === 'Silver' ? 'e.g., American Waltz, Tango' :
+                        studentForm.isi_international_dance_level === 'Pre-Gold' ? 'e.g., Kilian, Blues, Paso Doble' :
+                        studentForm.isi_international_dance_level === 'Gold' ? 'e.g., Viennese Waltz, Westminster Waltz' :
+                        'e.g., Austrian Waltz, Finnstep'
+                      }
+                    />
+                  </div>
+                )}
+
+                {/* Row 4: Free Dance Partnered & Solo Free Dance */}
+                <div style={styles.row}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>ISI Free Dance Partnered</label>
+                    <select style={styles.select} value={studentForm.isi_freedance_partnered} onChange={e => setStudentForm({ ...studentForm, isi_freedance_partnered: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_FREEDANCE_PARTNERED_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Open Solo Free Dance</label>
+                    <select style={styles.select} value={studentForm.isi_solo_freedance} onChange={e => setStudentForm({ ...studentForm, isi_solo_freedance: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_SOLO_FREEDANCE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 5: Synchro & Special Skater */}
+                <div style={styles.row}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>ISI Synchro</label>
+                    <select style={styles.select} value={studentForm.isi_synchro} onChange={e => setStudentForm({ ...studentForm, isi_synchro: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_SYNCHRO_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>ISI Special Skater</label>
+                    <select style={styles.select} value={studentForm.isi_special_skater} onChange={e => setStudentForm({ ...studentForm, isi_special_skater: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {ISI_SPECIAL_SKATER_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* ISI Membership Number */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>ISI Membership Number</label>
+                  <input type="text" style={styles.input} value={studentForm.isi_number} onChange={e => setStudentForm({ ...studentForm, isi_number: e.target.value })} />
+                </div>
+
+                {/* ========== USFSA TEST LEVELS ========== */}
+                <hr style={{ margin: '20px 0', border: 'none', borderTop: '2px solid #10b981' }} />
+                <h3 style={{ marginBottom: 16, color: '#047857' }}>USFSA Test Levels</h3>
+
+                {/* Row 1: Skating Skills & Singles */}
+                <div style={styles.row}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Skating Skills (Moves)</label>
+                    <select style={styles.select} value={studentForm.usfsa_skating_skills} onChange={e => setStudentForm({ ...studentForm, usfsa_skating_skills: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {USFSA_SKATING_SKILLS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Singles (Free Skate)</label>
+                    <select style={styles.select} value={studentForm.usfsa_singles} onChange={e => setStudentForm({ ...studentForm, usfsa_singles: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {USFSA_SINGLES.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 2: Pattern Dance Level & Pairs */}
+                <div style={styles.row}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Pattern Dance Level</label>
+                    <select style={styles.select} value={studentForm.usfsa_pattern_dance_level} onChange={e => setStudentForm({ ...studentForm, usfsa_pattern_dance_level: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {USFSA_PATTERN_DANCE.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Pairs</label>
+                    <select style={styles.select} value={studentForm.usfsa_pairs} onChange={e => setStudentForm({ ...studentForm, usfsa_pairs: e.target.value })}>
+                      <option value="">Select level...</option>
+                      {USFSA_PAIRS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Pattern Dances Passed (conditional) */}
+                {studentForm.usfsa_pattern_dance_level && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      Pattern Dances Passed ({studentForm.usfsa_pattern_dance_level})
+                    </label>
+                    <input 
+                      type="text" 
+                      style={styles.input} 
+                      value={studentForm.usfsa_pattern_dances} 
+                      onChange={e => setStudentForm({ ...studentForm, usfsa_pattern_dances: e.target.value })}
+                      placeholder={
+                        studentForm.usfsa_pattern_dance_level === 'Preliminary' ? 'e.g., Dutch Waltz, Canasta Tango, Rhythm Blues' :
+                        studentForm.usfsa_pattern_dance_level === 'Pre-Bronze' ? 'e.g., Swing Dance, Cha Cha, Fiesta Tango' :
+                        studentForm.usfsa_pattern_dance_level === 'Bronze' ? 'e.g., Hickory Hoedown, Willow Waltz, Ten-Fox' :
+                        studentForm.usfsa_pattern_dance_level === 'Pre-Silver' ? 'e.g., Fourteenstep, European Waltz, Foxtrot' :
+                        studentForm.usfsa_pattern_dance_level === 'Silver' ? 'e.g., American Waltz, Tango, Rocker Foxtrot' :
+                        studentForm.usfsa_pattern_dance_level === 'Pre-Gold' ? 'e.g., Kilian, Blues, Paso Doble, Starlight Waltz' :
+                        studentForm.usfsa_pattern_dance_level === 'Gold' ? 'e.g., Viennese Waltz, Westminster Waltz, Quickstep, Argentine Tango' :
+                        'e.g., Austrian Waltz, Cha Cha Congelado, Finnstep'
+                      }
+                    />
+                  </div>
+                )}
+
+                {/* Free Dance */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Free Dance</label>
+                  <select style={styles.select} value={studentForm.usfsa_free_dance} onChange={e => setStudentForm({ ...studentForm, usfsa_free_dance: e.target.value })}>
+                    <option value="">Select level...</option>
+                    {USFSA_FREE_DANCE.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+
+                {/* USFSA Membership Number */}
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>USFSA Membership Number</label>
+                  <input type="text" style={styles.input} value={studentForm.usfsa_number} onChange={e => setStudentForm({ ...studentForm, usfsa_number: e.target.value })} />
+                </div>
+                
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Notes</label>
                   <textarea style={styles.textarea} value={studentForm.notes} onChange={e => setStudentForm({ ...studentForm, notes: e.target.value })} />
