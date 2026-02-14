@@ -21904,7 +21904,7 @@ function App() {
     if (!profile || isCoach) return;
     const interval = setInterval(() => {
       loadData(profile);
-    }, 3e4);
+    }, 3e5);
     return () => clearInterval(interval);
   }, [profile, isCoach]);
   const loadProfile = async (userId) => {
@@ -23773,6 +23773,7 @@ function App() {
       const isToday = dateStr === todayStr;
       const isSelected = selectedDate && toDateStr(date) === toDateStr(selectedDate);
       const indicator = getDayIndicator(date);
+      const dayLessons = getLessonsForDate(date);
       return /* @__PURE__ */ import_react.default.createElement(
         "div",
         {
@@ -23781,14 +23782,20 @@ function App() {
           style: {
             background: isSelected ? "#ede9fe" : isToday ? "#fef3c7" : "white",
             padding: 8,
-            minHeight: 60,
+            minHeight: 80,
             cursor: "pointer",
             opacity: outside ? 0.4 : 1,
-            border: isSelected ? "2px solid #7c3aed" : "1px solid transparent"
+            border: isSelected ? "2px solid #7c3aed" : "1px solid transparent",
+            overflow: "hidden"
           }
         },
-        /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: isToday ? 700 : 400, fontSize: 14 } }, date.getDate()),
-        indicator && /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: indicator } }))
+        /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: isToday ? 700 : 400, fontSize: 14, marginBottom: 4 } }, date.getDate()),
+        dayLessons.slice(0, 3).map((lesson) => {
+          const lt = getLessonType(lesson.lesson_type);
+          const venue = venues.find((v) => v.id === lesson.venue_id);
+          return /* @__PURE__ */ import_react.default.createElement("div", { key: lesson.id, style: { fontSize: 10, marginBottom: 2, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { fontWeight: 600 } }, lesson.start_time.slice(0, 5)), " ", lt.icon, venue && /* @__PURE__ */ import_react.default.createElement("span", { style: { marginLeft: 2 }, title: venue.name }, "\u{1F4CD}"));
+        }),
+        dayLessons.length > 3 && /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 9, color: "#94a3b8", marginTop: 2 } }, "+", dayLessons.length - 3, " more")
       );
     }))), selectedDate && /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("h3", { style: { margin: "0 0 16px 0" } }, selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })), selectedDateLessons.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No lessons available on this day.") : /* @__PURE__ */ import_react.default.createElement("div", null, selectedDateLessons.sort((a, b) => a.start_time.localeCompare(b.start_time)).map((lesson) => {
       const lt = getLessonType(lesson.lesson_type);
