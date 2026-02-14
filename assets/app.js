@@ -21911,6 +21911,18 @@ function App() {
     try {
       const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
       if (error) throw error;
+      if (data.role !== "coach") {
+        const userEmail = (await supabase.auth.getUser()).data.user?.email;
+        if (userEmail) {
+          const { data: existingClients } = await supabase.from("clients").select("*").eq("email", userEmail).is("profile_id", null);
+          if (existingClients && existingClients.length > 0) {
+            for (const client of existingClients) {
+              await supabase.from("clients").update({ profile_id: data.id }).eq("id", client.id);
+            }
+            notify(`Account linked! Your existing bookings and students are now available.`);
+          }
+        }
+      }
       setProfile(data);
       loadData(data);
     } catch (err) {
@@ -23587,7 +23599,23 @@ function App() {
   };
   const renderClients = () => /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.cardHeader }, /* @__PURE__ */ import_react.default.createElement("h2", { style: styles.cardTitle }, "Clients"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => openClientModal() }, "+ Add Client")), clients.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No clients yet. Add your first client!") : /* @__PURE__ */ import_react.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react.default.createElement("table", { style: styles.table }, /* @__PURE__ */ import_react.default.createElement("thead", null, /* @__PURE__ */ import_react.default.createElement("tr", null, /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Name"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Email"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Phone"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Students"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Actions"))), /* @__PURE__ */ import_react.default.createElement("tbody", null, clients.map((c) => {
     const clientStudents = students.filter((s) => s.client_id === c.id);
-    return /* @__PURE__ */ import_react.default.createElement("tr", { key: c.id }, /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, /* @__PURE__ */ import_react.default.createElement("strong", null, c.name)), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, c.email), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, c.phone), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, clientStudents.length), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSecondary, marginRight: 8 }, onClick: () => openClientModal(c) }, "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSecondary, marginRight: 8 }, onClick: () => openStudentModal(null, c.id) }, "+ Student"), isCoach && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSuccess }, onClick: () => openInvoiceModal(c.id) }, "Invoice")));
+    const hasLinkedAccount = !!c.profile_id;
+    return /* @__PURE__ */ import_react.default.createElement("tr", { key: c.id }, /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, /* @__PURE__ */ import_react.default.createElement("strong", null, c.name), hasLinkedAccount && /* @__PURE__ */ import_react.default.createElement(
+      "span",
+      {
+        style: {
+          marginLeft: 8,
+          fontSize: 11,
+          background: "#22c55e",
+          color: "white",
+          padding: "2px 6px",
+          borderRadius: 4,
+          fontWeight: 600
+        },
+        title: "Client has logged in and linked their account"
+      },
+      "\u2713 LINKED"
+    )), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, c.email), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, c.phone), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, clientStudents.length), /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSecondary, marginRight: 8 }, onClick: () => openClientModal(c) }, "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSecondary, marginRight: 8 }, onClick: () => openStudentModal(null, c.id) }, "+ Student"), isCoach && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSuccess }, onClick: () => openInvoiceModal(c.id) }, "Invoice")));
   })))));
   const renderStudents = () => {
     if (showStudentForm) {
