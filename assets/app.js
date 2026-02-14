@@ -23597,7 +23597,85 @@ function App() {
       });
     })()));
   };
-  const renderClients = () => /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.cardHeader }, /* @__PURE__ */ import_react.default.createElement("h2", { style: styles.cardTitle }, "Clients"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => openClientModal() }, "+ Add Client")), clients.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No clients yet. Add your first client!") : /* @__PURE__ */ import_react.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react.default.createElement("table", { style: styles.table }, /* @__PURE__ */ import_react.default.createElement("thead", null, /* @__PURE__ */ import_react.default.createElement("tr", null, /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Name"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Email"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Phone"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Students"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Actions"))), /* @__PURE__ */ import_react.default.createElement("tbody", null, clients.map((c) => {
+  const renderClients = () => /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.cardHeader }, /* @__PURE__ */ import_react.default.createElement("h2", { style: styles.cardTitle }, "Clients"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "button",
+    {
+      style: { ...styles.btn, ...styles.btnSecondary },
+      onClick: () => {
+        const csv = `name,email,phone,address,city,state,zip,parent2_name,parent2_email,parent2_phone,notes,child_name,child_email,child_birthdate
+Jane Smith,jane@example.com,555-1234,123 Main St,Springfield,MA,01101,John Smith,john@example.com,555-5678,VIP client,Emma Smith,emma@example.com,2015-03-15
+Robert Johnson,rob@example.com,555-9999,456 Oak Ave,Boston,MA,02108,,,,,Michael Johnson,,2012-08-22`;
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "clients-import-template.csv";
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    },
+    "\u{1F4E5} Download Template"
+  ), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "file",
+      accept: ".csv",
+      style: { display: "none" },
+      id: "client-csv-upload",
+      onChange: async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        const lines = text.split("\n").filter((l) => l.trim());
+        const headers = lines[0].split(",");
+        let imported = 0, errors = 0;
+        for (let i = 1; i < lines.length; i++) {
+          try {
+            const values = lines[i].split(",");
+            const row = {};
+            headers.forEach((h, idx) => row[h.trim()] = values[idx]?.trim() || "");
+            const { data: newClient, error: clientError } = await supabase.from("clients").insert({
+              name: row.name,
+              email: row.email || null,
+              phone: row.phone || null,
+              address: row.address || null,
+              city: row.city || null,
+              state: row.state || null,
+              zip: row.zip || null,
+              parent2_name: row.parent2_name || null,
+              parent2_email: row.parent2_email || null,
+              parent2_phone: row.parent2_phone || null,
+              notes: row.notes || null
+            }).select().single();
+            if (clientError) throw clientError;
+            if (row.child_name) {
+              await supabase.from("students").insert({
+                client_id: newClient.id,
+                name: row.child_name,
+                email: row.child_email || null,
+                birthdate: row.child_birthdate || null,
+                notes: ""
+              });
+            }
+            imported++;
+          } catch (err) {
+            console.error("Import error:", err);
+            errors++;
+          }
+        }
+        notify(`Imported ${imported} clients${errors > 0 ? `, ${errors} errors` : ""}`);
+        loadData(profile);
+        e.target.value = "";
+      }
+    }
+  ), /* @__PURE__ */ import_react.default.createElement(
+    "button",
+    {
+      style: { ...styles.btn, ...styles.btnSecondary },
+      onClick: () => document.getElementById("client-csv-upload").click()
+    },
+    "\u{1F4E4} Import CSV"
+  ), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => openClientModal() }, "+ Add Client"))), clients.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No clients yet. Add your first client!") : /* @__PURE__ */ import_react.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react.default.createElement("table", { style: styles.table }, /* @__PURE__ */ import_react.default.createElement("thead", null, /* @__PURE__ */ import_react.default.createElement("tr", null, /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Name"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Email"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Phone"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Students"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Actions"))), /* @__PURE__ */ import_react.default.createElement("tbody", null, clients.map((c) => {
     const clientStudents = students.filter((s) => s.client_id === c.id);
     const hasLinkedAccount = !!c.profile_id;
     return /* @__PURE__ */ import_react.default.createElement("tr", { key: c.id }, /* @__PURE__ */ import_react.default.createElement("td", { style: styles.td }, /* @__PURE__ */ import_react.default.createElement("strong", null, c.name), hasLinkedAccount && /* @__PURE__ */ import_react.default.createElement(
