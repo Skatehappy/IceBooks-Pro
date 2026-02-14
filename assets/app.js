@@ -23160,10 +23160,10 @@ function App() {
     // Layout
     container: { minHeight: "100vh", background: "#f8fafc", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
     header: { background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", color: "white", padding: "16px 20px", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" },
-    headerContent: { maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 },
+    headerContent: { maxWidth: 1100, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 },
     logo: { fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 },
     userInfo: { display: "flex", alignItems: "center", gap: 12, fontSize: 14 },
-    main: { maxWidth: 1200, margin: "0 auto", padding: 20 },
+    main: { maxWidth: 1100, margin: "0 auto", padding: 20 },
     // Navigation
     nav: { display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, marginBottom: 20, borderBottom: "1px solid #e2e8f0" },
     navBtn: { padding: "10px 16px", border: "none", background: "transparent", cursor: "pointer", borderRadius: 8, fontWeight: 500, color: "#64748b", whiteSpace: "nowrap", transition: "all 0.2s" },
@@ -23541,7 +23541,7 @@ function App() {
   })))));
   const renderStudents = () => {
     if (showStudentForm) {
-      return /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "20px 40px", maxWidth: 1200, margin: "0 auto" } }, /* @__PURE__ */ import_react.default.createElement(
+      return /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "20px 40px", maxWidth: 1100, margin: "0 auto" } }, /* @__PURE__ */ import_react.default.createElement(
         "button",
         {
           style: { ...styles.btn, ...styles.btnSecondary, marginBottom: 20 },
@@ -23993,7 +23993,7 @@ function App() {
       onClick: () => setActiveTab(tab.id)
     },
     tab.label
-  ))), isCoach ? /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, activeTab === "calendar" && renderCalendar(), activeTab === "clients" && renderClients(), activeTab === "students" && renderStudents(), activeTab === "events" && renderEvents(), activeTab === "venues" && renderVenues(), activeTab === "invoices" && renderInvoices(), activeTab === "expenses" && renderExpenses(), activeTab === "mileage" && renderMileage(), activeTab === "settings" && renderSettings()) : /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, activeTab === "booking" && renderClientBooking(), activeTab === "mystudents" && renderMyStudents(), activeTab === "events" && renderEvents())), renderModal(), showStudentForm && /* @__PURE__ */ import_react.default.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "white", zIndex: 1e3, overflow: "auto" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "20px 40px", maxWidth: 1200, margin: "0 auto" } }, /* @__PURE__ */ import_react.default.createElement(
+  ))), isCoach ? /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, activeTab === "calendar" && renderCalendar(), activeTab === "clients" && renderClients(), activeTab === "students" && renderStudents(), activeTab === "events" && renderEvents(), activeTab === "venues" && renderVenues(), activeTab === "invoices" && renderInvoices(), activeTab === "expenses" && renderExpenses(), activeTab === "mileage" && renderMileage(), activeTab === "settings" && renderSettings()) : /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, activeTab === "booking" && renderClientBooking(), activeTab === "mystudents" && renderMyStudents(), activeTab === "events" && renderEvents())), renderModal(), showStudentForm && /* @__PURE__ */ import_react.default.createElement("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "white", zIndex: 1e3, overflow: "auto" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: "20px 40px", maxWidth: 1100, margin: "0 auto" } }, /* @__PURE__ */ import_react.default.createElement(
     "button",
     {
       style: { ...styles.btn, ...styles.btnSecondary, marginBottom: 20 },
