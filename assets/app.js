@@ -33125,7 +33125,7 @@ function App() {
   const [authPassword, setAuthPassword] = (0, import_react.useState)("");
   const [authName, setAuthName] = (0, import_react.useState)("");
   const [authError, setAuthError] = (0, import_react.useState)("");
-  const [activeTab, setActiveTab] = (0, import_react.useState)("calendar");
+  const [activeTab, setActiveTab] = (0, import_react.useState)(isCoach ? "calendar" : "booking");
   const [toast, setToast] = (0, import_react.useState)("");
   const [isMobile, setIsMobile] = (0, import_react.useState)(window.innerWidth < 768);
   const [lessons, setLessons] = (0, import_react.useState)([]);
