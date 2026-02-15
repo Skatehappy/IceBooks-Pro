@@ -33255,6 +33255,31 @@ function App() {
     zelle: "",
     cashapp: ""
   });
+  const [notificationSettings, setNotificationSettings] = (0, import_react.useState)({
+    email_enabled: false,
+    resend_api_key: "",
+    sms_enabled: false,
+    twilio_account_sid: "",
+    twilio_auth_token: "",
+    twilio_phone_number: "",
+    // Coach receives
+    notify_coach_booking: true,
+    notify_coach_event_registration: true,
+    notify_coach_cancellation: true,
+    // Client receives
+    notify_client_booking_confirmation: true,
+    notify_client_event_confirmation: true,
+    notify_client_cancellation_confirmation: true,
+    notify_client_invoice: true,
+    notify_client_payment_reminder: true,
+    notify_client_lesson_reminder: true,
+    // Timing
+    lesson_reminder_hours: 24,
+    payment_reminder_days: 7,
+    // Contact info
+    coach_email: "",
+    coach_phone: ""
+  });
   const [copySource, setCopySource] = (0, import_react.useState)(null);
   const [copyTargetDays, setCopyTargetDays] = (0, import_react.useState)([]);
   const [copyWeeks, setCopyWeeks] = (0, import_react.useState)(1);
@@ -33411,6 +33436,27 @@ function App() {
             zelle: settings.payment_zelle || "",
             cashapp: settings.payment_cashapp || ""
           });
+          setNotificationSettings({
+            email_enabled: settings.notification_email_enabled || false,
+            resend_api_key: settings.notification_resend_api_key || "",
+            sms_enabled: settings.notification_sms_enabled || false,
+            twilio_account_sid: settings.notification_twilio_account_sid || "",
+            twilio_auth_token: settings.notification_twilio_auth_token || "",
+            twilio_phone_number: settings.notification_twilio_phone_number || "",
+            notify_coach_booking: settings.notify_coach_booking !== false,
+            notify_coach_event_registration: settings.notify_coach_event_registration !== false,
+            notify_coach_cancellation: settings.notify_coach_cancellation !== false,
+            notify_client_booking_confirmation: settings.notify_client_booking_confirmation !== false,
+            notify_client_event_confirmation: settings.notify_client_event_confirmation !== false,
+            notify_client_cancellation_confirmation: settings.notify_client_cancellation_confirmation !== false,
+            notify_client_invoice: settings.notify_client_invoice !== false,
+            notify_client_payment_reminder: settings.notify_client_payment_reminder !== false,
+            notify_client_lesson_reminder: settings.notify_client_lesson_reminder !== false,
+            lesson_reminder_hours: settings.lesson_reminder_hours || 24,
+            payment_reminder_days: settings.payment_reminder_days || 7,
+            coach_email: settings.coach_email || "",
+            coach_phone: settings.coach_phone || ""
+          });
           if (settings.custom_lesson_types) {
             try {
               setCustomLessonTypes(JSON.parse(settings.custom_lesson_types));
@@ -33505,6 +33551,106 @@ function App() {
       loadData(profile);
     } catch (err) {
       console.error("Notification error:", err);
+    }
+  };
+  const sendExternalNotification = async (type, data) => {
+    try {
+      const settings = notificationSettings;
+      if (!settings) return;
+      const shouldSend = {
+        coach_booking: settings.notify_coach_booking,
+        coach_event_registration: settings.notify_coach_event_registration,
+        coach_cancellation: settings.notify_coach_cancellation,
+        client_booking_confirmation: settings.notify_client_booking_confirmation,
+        client_event_confirmation: settings.notify_client_event_confirmation,
+        client_cancellation_confirmation: settings.notify_client_cancellation_confirmation,
+        client_invoice: settings.notify_client_invoice,
+        client_payment_reminder: settings.notify_client_payment_reminder,
+        client_lesson_reminder: settings.notify_client_lesson_reminder
+      };
+      if (!shouldSend[type]) return;
+      let to_email, to_phone, subject, message_text, html;
+      if (type.startsWith("coach_")) {
+        to_email = settings.coach_email;
+        to_phone = settings.coach_phone;
+      } else if (type.startsWith("client_")) {
+        const client = clients.find((c) => c.id === data.client_id);
+        to_email = client?.email;
+        to_phone = client?.phone;
+      }
+      switch (type) {
+        case "coach_booking":
+          subject = `New Booking: ${data.student_name}`;
+          message_text = `${data.student_name} booked ${data.lesson_type} on ${data.lesson_date} at ${data.lesson_time}`;
+          html = `<p><strong>${data.student_name}</strong> booked <strong>${data.lesson_type}</strong></p><p>Date: ${data.lesson_date}<br/>Time: ${data.lesson_time}<br/>Venue: ${data.venue_name}</p>`;
+          break;
+        case "coach_event_registration":
+          subject = `New Registration: ${data.student_name} - ${data.event_name}`;
+          message_text = `${data.student_name} registered for ${data.event_name}`;
+          html = `<p><strong>${data.student_name}</strong> registered for <strong>${data.event_name}</strong></p><p>Date: ${data.event_date}<br/>Location: ${data.event_location}</p>`;
+          break;
+        case "coach_cancellation":
+          subject = `Cancellation: ${data.student_name}`;
+          message_text = `${data.student_name} cancelled ${data.lesson_type || data.event_name} on ${data.date}`;
+          html = `<p><strong>${data.student_name}</strong> cancelled</p><p>${data.lesson_type || data.event_name}<br/>Date: ${data.date}</p>`;
+          break;
+        case "client_booking_confirmation":
+          subject = `Booking Confirmed: ${data.lesson_type}`;
+          message_text = `Your booking is confirmed for ${data.lesson_date} at ${data.lesson_time}. Student: ${data.student_name}`;
+          html = `<h3>Booking Confirmed</h3><p><strong>Student:</strong> ${data.student_name}<br/><strong>Lesson:</strong> ${data.lesson_type}<br/><strong>Date:</strong> ${data.lesson_date}<br/><strong>Time:</strong> ${data.lesson_time}<br/><strong>Venue:</strong> ${data.venue_name}</p>`;
+          break;
+        case "client_event_confirmation":
+          subject = `Registration Confirmed: ${data.event_name}`;
+          message_text = `${data.student_name} is registered for ${data.event_name} on ${data.event_date}`;
+          html = `<h3>Registration Confirmed</h3><p><strong>Student:</strong> ${data.student_name}<br/><strong>Event:</strong> ${data.event_name}<br/><strong>Date:</strong> ${data.event_date}<br/><strong>Location:</strong> ${data.event_location}</p>`;
+          break;
+        case "client_cancellation_confirmation":
+          subject = `Cancellation Confirmed`;
+          message_text = `Your booking has been cancelled: ${data.lesson_type || data.event_name} on ${data.date}`;
+          html = `<h3>Cancellation Confirmed</h3><p>Your booking has been cancelled:<br/>${data.lesson_type || data.event_name}<br/>Date: ${data.date}</p>`;
+          break;
+      }
+      if (settings.email_enabled && settings.resend_api_key && to_email) {
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/send-email-notification`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              to: to_email,
+              subject,
+              html,
+              resend_api_key: settings.resend_api_key
+            })
+          });
+        } catch (err) {
+          console.error("Email send error:", err);
+        }
+      }
+      if (settings.sms_enabled && settings.twilio_account_sid && to_phone) {
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/send-sms-notification`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              to: to_phone,
+              message: message_text,
+              twilio_account_sid: settings.twilio_account_sid,
+              twilio_auth_token: settings.twilio_auth_token,
+              twilio_phone_number: settings.twilio_phone_number
+            })
+          });
+        } catch (err) {
+          console.error("SMS send error:", err);
+        }
+      }
+    } catch (err) {
+      console.error("External notification error:", err);
     }
   };
   const markNotificationRead = async (id) => {
@@ -34457,7 +34603,26 @@ function App() {
         payment_venmo: paymentSettings.venmo,
         payment_paypal: paymentSettings.paypal,
         payment_zelle: paymentSettings.zelle,
-        payment_cashapp: paymentSettings.cashapp
+        payment_cashapp: paymentSettings.cashapp,
+        notification_email_enabled: notificationSettings.email_enabled,
+        notification_resend_api_key: notificationSettings.resend_api_key,
+        notification_sms_enabled: notificationSettings.sms_enabled,
+        notification_twilio_account_sid: notificationSettings.twilio_account_sid,
+        notification_twilio_auth_token: notificationSettings.twilio_auth_token,
+        notification_twilio_phone_number: notificationSettings.twilio_phone_number,
+        notify_coach_booking: notificationSettings.notify_coach_booking,
+        notify_coach_event_registration: notificationSettings.notify_coach_event_registration,
+        notify_coach_cancellation: notificationSettings.notify_coach_cancellation,
+        notify_client_booking_confirmation: notificationSettings.notify_client_booking_confirmation,
+        notify_client_event_confirmation: notificationSettings.notify_client_event_confirmation,
+        notify_client_cancellation_confirmation: notificationSettings.notify_client_cancellation_confirmation,
+        notify_client_invoice: notificationSettings.notify_client_invoice,
+        notify_client_payment_reminder: notificationSettings.notify_client_payment_reminder,
+        notify_client_lesson_reminder: notificationSettings.notify_client_lesson_reminder,
+        lesson_reminder_hours: notificationSettings.lesson_reminder_hours,
+        payment_reminder_days: notificationSettings.payment_reminder_days,
+        coach_email: notificationSettings.coach_email,
+        coach_phone: notificationSettings.coach_phone
       };
       if (existing) {
         const { error } = await supabase.from("settings").update(settingsData).eq("id", existing.id);
@@ -35106,7 +35271,156 @@ function App() {
       onChange: (e) => setPaymentSettings({ ...paymentSettings, cashapp: e.target.value }),
       placeholder: "$cashtag"
     }
-  ))), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: savePaymentSettings }, "Save Payment Settings")), /* @__PURE__ */ import_react.default.createElement("div", { style: { borderTop: "1px solid #e2e8f0", paddingTop: 24 } }, /* @__PURE__ */ import_react.default.createElement("h3", { style: { fontSize: 16, fontWeight: 600, marginBottom: 16 } }, "\u{1F4E7} Email Invoices"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 14, color: "#64748b" } }, "To send invoices via email, you'll need to set up a Resend API key in your Supabase Edge Function. See the README for setup instructions.")));
+  ))), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: savePaymentSettings }, "Save Payment Settings")), /* @__PURE__ */ import_react.default.createElement("div", { style: { borderTop: "1px solid #e2e8f0", paddingTop: 24, marginTop: 24 } }, /* @__PURE__ */ import_react.default.createElement("h3", { style: { fontSize: 18, fontWeight: 600, marginBottom: 16 } }, "\u{1F514} Notification Settings"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 14, color: "#64748b", marginBottom: 16 } }, "Configure automated email and SMS notifications for bookings, cancellations, and reminders."), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 24, padding: 16, background: "#fef3c7", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("h4", { style: { fontSize: 15, fontWeight: 600, marginBottom: 12 } }, "Your Contact Information"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Email (for receiving notifications)"), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: styles.input,
+      type: "email",
+      placeholder: "coach@example.com",
+      value: notificationSettings.coach_email,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, coach_email: e.target.value })
+    }
+  )), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Phone (for receiving SMS)"), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: styles.input,
+      type: "tel",
+      placeholder: "+1234567890",
+      value: notificationSettings.coach_phone,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, coach_phone: e.target.value })
+    }
+  )))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 24, padding: 16, background: "#f8fafc", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.email_enabled,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, email_enabled: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("label", { style: { fontWeight: 600, fontSize: 15 } }, "Enable Email Notifications")), notificationSettings.email_enabled && /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Resend API Key"), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: styles.input,
+      type: "password",
+      placeholder: "re_...",
+      value: notificationSettings.resend_api_key,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, resend_api_key: e.target.value })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("small", { style: { color: "#64748b", fontSize: 12 } }, "Get your API key from ", /* @__PURE__ */ import_react.default.createElement("a", { href: "https://resend.com/api-keys", target: "_blank", style: { color: "#7c3aed" } }, "resend.com/api-keys"), ". Free tier: 100 emails/day."))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 24, padding: 16, background: "#f8fafc", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.sms_enabled,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, sms_enabled: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("label", { style: { fontWeight: 600, fontSize: 15 } }, "Enable SMS Notifications")), notificationSettings.sms_enabled && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Twilio Account SID"), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: styles.input,
+      type: "password",
+      placeholder: "AC...",
+      value: notificationSettings.twilio_account_sid,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, twilio_account_sid: e.target.value })
+    }
+  )), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Twilio Auth Token"), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: styles.input,
+      type: "password",
+      placeholder: "Auth Token",
+      value: notificationSettings.twilio_auth_token,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, twilio_auth_token: e.target.value })
+    }
+  )), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Twilio Phone Number"), /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: styles.input,
+      type: "tel",
+      placeholder: "+1234567890",
+      value: notificationSettings.twilio_phone_number,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, twilio_phone_number: e.target.value })
+    }
+  )), /* @__PURE__ */ import_react.default.createElement("small", { style: { color: "#64748b", fontSize: 12 } }, "Get credentials from ", /* @__PURE__ */ import_react.default.createElement("a", { href: "https://console.twilio.com/", target: "_blank", style: { color: "#7c3aed" } }, "console.twilio.com"), ". Cost: ~$0.01 per SMS."))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 24, padding: 16, background: "#eff6ff", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("h4", { style: { fontSize: 15, fontWeight: 600, marginBottom: 12 } }, "\u{1F4E5} Notifications You Receive"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 13, color: "#64748b", marginBottom: 12 } }, "When clients take action, notify me via email/SMS:"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_coach_booking,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_coach_booking: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Client books a lesson")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_coach_event_registration,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_coach_event_registration: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Client registers for an event/competition")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_coach_cancellation,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_coach_cancellation: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Client cancels a booking")))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 24, padding: 16, background: "#f0fdf4", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("h4", { style: { fontSize: 15, fontWeight: 600, marginBottom: 12 } }, "\u{1F4E4} Notifications Clients Receive"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 13, color: "#64748b", marginBottom: 12 } }, "Automatically send confirmations and reminders to clients:"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_client_booking_confirmation,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_client_booking_confirmation: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Booking confirmation (when they book a lesson)")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_client_event_confirmation,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_client_event_confirmation: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Event registration confirmation")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_client_cancellation_confirmation,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_client_cancellation_confirmation: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Cancellation confirmation")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_client_invoice,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_client_invoice: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", null, "Invoice notification (when you send an invoice)")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_client_payment_reminder,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_client_payment_reminder: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "flex", alignItems: "center", gap: 8 } }, "Payment reminders", /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: { width: 60, padding: "2px 6px", border: "1px solid #cbd5e1", borderRadius: 4 },
+      type: "number",
+      min: "1",
+      value: notificationSettings.payment_reminder_days,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, payment_reminder_days: parseInt(e.target.value) || 7 })
+    }
+  ), "days after invoice")), /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      type: "checkbox",
+      checked: notificationSettings.notify_client_lesson_reminder,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, notify_client_lesson_reminder: e.target.checked })
+    }
+  ), /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "flex", alignItems: "center", gap: 8 } }, "Lesson reminders", /* @__PURE__ */ import_react.default.createElement(
+    "input",
+    {
+      style: { width: 60, padding: "2px 6px", border: "1px solid #cbd5e1", borderRadius: 4 },
+      type: "number",
+      min: "1",
+      value: notificationSettings.lesson_reminder_hours,
+      onChange: (e) => setNotificationSettings({ ...notificationSettings, lesson_reminder_hours: parseInt(e.target.value) || 24 })
+    }
+  ), "hours before lesson"))))), /* @__PURE__ */ import_react.default.createElement("div", { style: { borderTop: "1px solid #e2e8f0", paddingTop: 24 } }, /* @__PURE__ */ import_react.default.createElement("h3", { style: { fontSize: 16, fontWeight: 600, marginBottom: 16 } }, "\u{1F4E7} Email Invoices"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 14, color: "#64748b" } }, "To send invoices via email, you'll need to set up a Resend API key in your Supabase Edge Function. See the README for setup instructions.")));
   const renderEvents = () => {
     const upcomingEvents = events.filter((e) => e.start_date >= toDateStr(/* @__PURE__ */ new Date()));
     const pastEvents = events.filter((e) => e.start_date < toDateStr(/* @__PURE__ */ new Date()));
@@ -35463,7 +35777,49 @@ function App() {
         }
       },
       "Cancel"
-    ))))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Max Students"), /* @__PURE__ */ import_react.default.createElement("input", { type: "number", style: styles.input, min: 1, value: lessonForm.max_students, onChange: (e) => setLessonForm({ ...lessonForm, max_students: parseInt(e.target.value) }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.row }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Venue"), /* @__PURE__ */ import_react.default.createElement("select", { style: styles.select, value: lessonForm.venue_id, onChange: (e) => setLessonForm({ ...lessonForm, venue_id: e.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "" }, "Select venue..."), venues.map((v) => /* @__PURE__ */ import_react.default.createElement("option", { key: v.id, value: v.id }, v.name)))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Rate ($)"), /* @__PURE__ */ import_react.default.createElement("input", { type: "number", style: styles.input, step: "0.01", value: lessonForm.rate, onChange: (e) => setLessonForm({ ...lessonForm, rate: parseFloat(e.target.value) }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: { ...styles.label, display: "flex", alignItems: "center" } }, /* @__PURE__ */ import_react.default.createElement("input", { type: "checkbox", style: styles.checkbox, checked: lessonForm.is_published, onChange: (e) => setLessonForm({ ...lessonForm, is_published: e.target.checked }) }), "Published (visible for booking)")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Notes"), /* @__PURE__ */ import_react.default.createElement("textarea", { style: styles.textarea, value: lessonForm.notes, onChange: (e) => setLessonForm({ ...lessonForm, notes: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalFooter }, editingItem && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnDanger, marginRight: "auto" }, onClick: () => deleteLesson(editingItem.id) }, "Delete"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "Cancel"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: saveLesson }, "Save"))), showModal === "event" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, editingItem ? "Edit Event" : "New Event"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalBody }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Event Name"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: eventForm.name, onChange: (e) => setEventForm({ ...eventForm, name: e.target.value }), placeholder: "e.g., Winter Classic" })), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Event Type"), /* @__PURE__ */ import_react.default.createElement("select", { style: styles.select, value: eventForm.event_type, onChange: (e) => setEventForm({ ...eventForm, event_type: e.target.value }) }, EVENT_TYPES.map((t) => /* @__PURE__ */ import_react.default.createElement("option", { key: t.id, value: t.id }, t.icon, " ", t.name)))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.row }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Start Date"), /* @__PURE__ */ import_react.default.createElement("input", { type: "date", style: styles.input, value: eventForm.start_date, onChange: (e) => setEventForm({ ...eventForm, start_date: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "End Date"), /* @__PURE__ */ import_react.default.createElement("input", { type: "date", style: styles.input, value: eventForm.end_date, onChange: (e) => setEventForm({ ...eventForm, end_date: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Venue"), /* @__PURE__ */ import_react.default.createElement("select", { style: styles.select, value: eventForm.venue_id, onChange: (e) => setEventForm({ ...eventForm, venue_id: e.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "" }, "Select venue..."), venues.map((v) => /* @__PURE__ */ import_react.default.createElement("option", { key: v.id, value: v.id }, v.name)))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: { ...styles.label, display: "flex", alignItems: "center" } }, /* @__PURE__ */ import_react.default.createElement("input", { type: "checkbox", style: styles.checkbox, checked: eventForm.is_registrable, onChange: (e) => setEventForm({ ...eventForm, is_registrable: e.target.checked }) }), "Allow student registration")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Notes"), /* @__PURE__ */ import_react.default.createElement("textarea", { style: styles.textarea, value: eventForm.notes, onChange: (e) => setEventForm({ ...eventForm, notes: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalFooter }, editingItem && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnDanger, marginRight: "auto" }, onClick: () => deleteEvent(editingItem.id) }, "Delete"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "Cancel"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: saveEvent }, "Save"))), showModal === "client" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, editingItem ? "Edit Client" : "New Client"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 16 } }, /* @__PURE__ */ import_react.default.createElement("h4", { style: { marginBottom: 8, fontSize: 14 } }, "Parents/Guardians"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 10, border: "1px solid #e2e8f0", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 6, fontSize: 13 } }, "Parent 1 (Primary Contact) *"), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Name *"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.name, onChange: (e) => setClientForm({ ...clientForm, name: e.target.value }), required: true })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Email"), /* @__PURE__ */ import_react.default.createElement("input", { type: "email", style: styles.input, value: clientForm.email, onChange: (e) => setClientForm({ ...clientForm, email: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Phone"), /* @__PURE__ */ import_react.default.createElement("input", { type: "tel", style: styles.input, value: clientForm.phone, onChange: (e) => setClientForm({ ...clientForm, phone: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 10, border: "1px solid #e2e8f0", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 6, fontSize: 13 } }, "Parent 2 (Optional)"), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Name"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.parent2_name, onChange: (e) => setClientForm({ ...clientForm, parent2_name: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Email"), /* @__PURE__ */ import_react.default.createElement("input", { type: "email", style: styles.input, value: clientForm.parent2_email, onChange: (e) => setClientForm({ ...clientForm, parent2_email: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Phone"), /* @__PURE__ */ import_react.default.createElement("input", { type: "tel", style: styles.input, value: clientForm.parent2_phone, onChange: (e) => setClientForm({ ...clientForm, parent2_phone: e.target.value }) })))), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Address"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.address, onChange: (e) => setClientForm({ ...clientForm, address: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "City"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.city, onChange: (e) => setClientForm({ ...clientForm, city: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "State"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.state, onChange: (e) => setClientForm({ ...clientForm, state: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "ZIP"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.zip, onChange: (e) => setClientForm({ ...clientForm, zip: e.target.value }) }))), !editingItem && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("h4", { style: { marginBottom: 4, fontSize: 14, marginTop: 4 } }, "Student Information (Optional)"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 12, color: "#64748b", marginBottom: 6 } }, "Add child's name to auto-create student record. Leave blank if client is the student (adult)."), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 3, fontWeight: 500, fontSize: 13 } }, "Child/Student Name"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.child_name, onChange: (e) => setClientForm({ ...clientForm, child_name: e.target.value }), placeholder: "Leave blank if client is the student" })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 3, fontWeight: 500, fontSize: 13 } }, "Child Birthdate"), /* @__PURE__ */ import_react.default.createElement("input", { type: "date", style: styles.input, value: clientForm.child_birthdate, onChange: (e) => setClientForm({ ...clientForm, child_birthdate: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 3, fontWeight: 500, fontSize: 13 } }, "Child Email (for self-login)"), /* @__PURE__ */ import_react.default.createElement("input", { type: "email", style: styles.input, value: clientForm.child_email, onChange: (e) => setClientForm({ ...clientForm, child_email: e.target.value }) }))))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalFooter }, editingItem && isCoach && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnDanger, marginRight: "auto" }, onClick: () => deleteClient(editingItem.id) }, "Delete"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "Cancel"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: saveClient }, "Save"))), showModal === "student" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, editingItem ? "Edit Student" : "New Student"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalBody }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Student Name ", isCoach ? "*" : ""), /* @__PURE__ */ import_react.default.createElement(
+    ))))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Max Students"), /* @__PURE__ */ import_react.default.createElement("input", { type: "number", style: styles.input, min: 1, value: lessonForm.max_students, onChange: (e) => setLessonForm({ ...lessonForm, max_students: parseInt(e.target.value) }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.row }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Venue"), /* @__PURE__ */ import_react.default.createElement("select", { style: styles.select, value: lessonForm.venue_id, onChange: (e) => setLessonForm({ ...lessonForm, venue_id: e.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "" }, "Select venue..."), venues.map((v) => /* @__PURE__ */ import_react.default.createElement("option", { key: v.id, value: v.id }, v.name)))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Rate ($)"), /* @__PURE__ */ import_react.default.createElement("input", { type: "number", style: styles.input, step: "0.01", value: lessonForm.rate, onChange: (e) => setLessonForm({ ...lessonForm, rate: parseFloat(e.target.value) }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: { ...styles.label, display: "flex", alignItems: "center" } }, /* @__PURE__ */ import_react.default.createElement("input", { type: "checkbox", style: styles.checkbox, checked: lessonForm.is_published, onChange: (e) => setLessonForm({ ...lessonForm, is_published: e.target.checked }) }), "Published (visible for booking)")), editingItem && /* @__PURE__ */ import_react.default.createElement("div", { style: { borderTop: "1px solid #e2e8f0", paddingTop: 16, marginTop: 16 } }, /* @__PURE__ */ import_react.default.createElement("h4", { style: { fontSize: 16, fontWeight: 600, marginBottom: 12 } }, "Booked Students (", bookings.filter((b) => b.lesson_id === editingItem.id && b.status !== "cancelled").length, "/", editingItem.max_students, ")"), (() => {
+      const lessonBookings = bookings.filter((b) => b.lesson_id === editingItem.id && b.status !== "cancelled");
+      return lessonBookings.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#94a3b8", fontStyle: "italic", marginBottom: 12 } }, "No bookings yet") : /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 } }, lessonBookings.map((booking) => {
+        const student = students.find((s) => s.id === booking.student_id);
+        return /* @__PURE__ */ import_react.default.createElement("div", { key: booking.id, style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: 8,
+          background: "#f8fafc",
+          borderRadius: 4
+        } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { fontWeight: 500 } }, student?.name || "Unknown"), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            style: { ...styles.btn, ...styles.btnDanger, ...styles.btnSmall },
+            onClick: () => cancelBooking(booking.id)
+          },
+          "Remove"
+        ));
+      }));
+    })(), (() => {
+      const lessonBookings = bookings.filter((b) => b.lesson_id === editingItem.id && b.status !== "cancelled");
+      const spotsRemaining = editingItem.max_students - lessonBookings.length;
+      const bookedStudentIds = lessonBookings.map((b) => b.student_id);
+      const availableStudents = students.filter((s) => !bookedStudentIds.includes(s.id));
+      if (spotsRemaining <= 0) {
+        return /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 12, background: "#fef3c7", borderRadius: 6, color: "#92400e" } }, "This lesson is full (", editingItem.max_students, " students max)");
+      }
+      if (availableStudents.length === 0) {
+        return /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 12, background: "#f0fdf4", borderRadius: 6, color: "#166534" } }, "All students are already booked");
+      }
+      return /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("label", { style: { ...styles.label, marginBottom: 8 } }, "Book Additional Student (", spotsRemaining, " spots left)"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, availableStudents.map((s) => /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          key: s.id,
+          style: { ...styles.btn, ...styles.btnPrimary, textAlign: "left", padding: "8px 12px" },
+          onClick: () => {
+            bookLesson(editingItem.id, s.id);
+          }
+        },
+        s.name
+      ))));
+    })())), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalFooter }, editingItem && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnDanger, marginRight: "auto" }, onClick: () => deleteLesson(editingItem.id) }, "Delete"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "Cancel"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: saveLesson }, "Save"))), showModal === "event" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, editingItem ? "Edit Event" : "New Event"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalBody }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Event Name"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: eventForm.name, onChange: (e) => setEventForm({ ...eventForm, name: e.target.value }), placeholder: "e.g., Winter Classic" })), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Event Type"), /* @__PURE__ */ import_react.default.createElement("select", { style: styles.select, value: eventForm.event_type, onChange: (e) => setEventForm({ ...eventForm, event_type: e.target.value }) }, EVENT_TYPES.map((t) => /* @__PURE__ */ import_react.default.createElement("option", { key: t.id, value: t.id }, t.icon, " ", t.name)))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.row }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Start Date"), /* @__PURE__ */ import_react.default.createElement("input", { type: "date", style: styles.input, value: eventForm.start_date, onChange: (e) => setEventForm({ ...eventForm, start_date: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "End Date"), /* @__PURE__ */ import_react.default.createElement("input", { type: "date", style: styles.input, value: eventForm.end_date, onChange: (e) => setEventForm({ ...eventForm, end_date: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Venue"), /* @__PURE__ */ import_react.default.createElement("select", { style: styles.select, value: eventForm.venue_id, onChange: (e) => setEventForm({ ...eventForm, venue_id: e.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "" }, "Select venue..."), venues.map((v) => /* @__PURE__ */ import_react.default.createElement("option", { key: v.id, value: v.id }, v.name)))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: { ...styles.label, display: "flex", alignItems: "center" } }, /* @__PURE__ */ import_react.default.createElement("input", { type: "checkbox", style: styles.checkbox, checked: eventForm.is_registrable, onChange: (e) => setEventForm({ ...eventForm, is_registrable: e.target.checked }) }), "Allow student registration")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Notes"), /* @__PURE__ */ import_react.default.createElement("textarea", { style: styles.textarea, value: eventForm.notes, onChange: (e) => setEventForm({ ...eventForm, notes: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalFooter }, editingItem && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnDanger, marginRight: "auto" }, onClick: () => deleteEvent(editingItem.id) }, "Delete"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "Cancel"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: saveEvent }, "Save"))), showModal === "client" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, editingItem ? "Edit Client" : "New Client"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 16 } }, /* @__PURE__ */ import_react.default.createElement("h4", { style: { marginBottom: 8, fontSize: 14 } }, "Parents/Guardians"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 10, border: "1px solid #e2e8f0", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 6, fontSize: 13 } }, "Parent 1 (Primary Contact) *"), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Name *"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.name, onChange: (e) => setClientForm({ ...clientForm, name: e.target.value }), required: true })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Email"), /* @__PURE__ */ import_react.default.createElement("input", { type: "email", style: styles.input, value: clientForm.email, onChange: (e) => setClientForm({ ...clientForm, email: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Phone"), /* @__PURE__ */ import_react.default.createElement("input", { type: "tel", style: styles.input, value: clientForm.phone, onChange: (e) => setClientForm({ ...clientForm, phone: e.target.value }) }))), /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 10, border: "1px solid #e2e8f0", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 6, fontSize: 13 } }, "Parent 2 (Optional)"), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Name"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.parent2_name, onChange: (e) => setClientForm({ ...clientForm, parent2_name: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Email"), /* @__PURE__ */ import_react.default.createElement("input", { type: "email", style: styles.input, value: clientForm.parent2_email, onChange: (e) => setClientForm({ ...clientForm, parent2_email: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Phone"), /* @__PURE__ */ import_react.default.createElement("input", { type: "tel", style: styles.input, value: clientForm.parent2_phone, onChange: (e) => setClientForm({ ...clientForm, parent2_phone: e.target.value }) })))), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "Address"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.address, onChange: (e) => setClientForm({ ...clientForm, address: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "City"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.city, onChange: (e) => setClientForm({ ...clientForm, city: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "State"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.state, onChange: (e) => setClientForm({ ...clientForm, state: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 } }, "ZIP"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.zip, onChange: (e) => setClientForm({ ...clientForm, zip: e.target.value }) }))), !editingItem && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("h4", { style: { marginBottom: 4, fontSize: 14, marginTop: 4 } }, "Student Information (Optional)"), /* @__PURE__ */ import_react.default.createElement("p", { style: { fontSize: 12, color: "#64748b", marginBottom: 6 } }, "Add child's name to auto-create student record. Leave blank if client is the student (adult)."), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 3, fontWeight: 500, fontSize: 13 } }, "Child/Student Name"), /* @__PURE__ */ import_react.default.createElement("input", { type: "text", style: styles.input, value: clientForm.child_name, onChange: (e) => setClientForm({ ...clientForm, child_name: e.target.value }), placeholder: "Leave blank if client is the student" })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 3, fontWeight: 500, fontSize: 13 } }, "Child Birthdate"), /* @__PURE__ */ import_react.default.createElement("input", { type: "date", style: styles.input, value: clientForm.child_birthdate, onChange: (e) => setClientForm({ ...clientForm, child_birthdate: e.target.value }) })), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 0 } }, /* @__PURE__ */ import_react.default.createElement("label", { style: { display: "block", marginBottom: 3, fontWeight: 500, fontSize: 13 } }, "Child Email (for self-login)"), /* @__PURE__ */ import_react.default.createElement("input", { type: "email", style: styles.input, value: clientForm.child_email, onChange: (e) => setClientForm({ ...clientForm, child_email: e.target.value }) }))))), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalFooter }, editingItem && isCoach && /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnDanger, marginRight: "auto" }, onClick: () => deleteClient(editingItem.id) }, "Delete"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "Cancel"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: saveClient }, "Save"))), showModal === "student" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, editingItem ? "Edit Student" : "New Student"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: closeModal }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalBody }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Student Name ", isCoach ? "*" : ""), /* @__PURE__ */ import_react.default.createElement(
       "input",
       {
         type: "text",
