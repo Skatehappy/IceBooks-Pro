@@ -33246,7 +33246,7 @@ function App() {
   const [mileage, setMileage] = (0, import_react.useState)([]);
   const [rates, setRates] = (0, import_react.useState)([]);
   const [currentDate, setCurrentDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
-  const [calendarView, setCalendarView] = (0, import_react.useState)(isMobile ? "day" : "week");
+  const [calendarView, setCalendarView] = (0, import_react.useState)(isMobile ? "day" : "month");
   const [selectedDate, setSelectedDate] = (0, import_react.useState)(isMobile ? /* @__PURE__ */ new Date() : null);
   const [notifications, setNotifications] = (0, import_react.useState)([]);
   const [showNotifications, setShowNotifications] = (0, import_react.useState)(false);
