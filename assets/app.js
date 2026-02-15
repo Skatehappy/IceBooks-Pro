@@ -34153,21 +34153,28 @@ function App() {
     try {
       const event = events.find((e) => e.id === eventId);
       if (!event) throw new Error("Event not found");
-      const alreadyRegistered = bookings.find(
-        (b) => b.event_id === eventId && b.student_id === studentId && b.status !== "cancelled"
+      const existingBooking = bookings.find(
+        (b) => b.event_id === eventId && b.student_id === studentId
       );
-      if (alreadyRegistered) {
+      if (existingBooking && existingBooking.status !== "cancelled") {
         notify("Student already registered for this event");
         return;
       }
-      const { error } = await supabase.from("bookings").insert({
-        event_id: eventId,
-        student_id: studentId,
-        booked_by: profile.id,
-        // Use profile.id (UUID in profiles table)
-        status: "confirmed"
-      });
-      if (error) throw error;
+      if (existingBooking && existingBooking.status === "cancelled") {
+        const { error } = await supabase.from("bookings").update({
+          status: "confirmed",
+          cancelled_at: null
+        }).eq("id", existingBooking.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("bookings").insert({
+          event_id: eventId,
+          student_id: studentId,
+          booked_by: profile.id,
+          status: "confirmed"
+        });
+        if (error) throw error;
+      }
       if (!isCoach) {
         const student = students.find((s) => s.id === studentId);
         const et = getEventType(event.event_type);
