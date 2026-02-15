@@ -34114,7 +34114,7 @@ function App() {
         status: "confirmed"
       });
       if (error) throw error;
-      if (isCoach) {
+      if (!isCoach) {
         const student = students.find((s) => s.id === studentId);
         const lt = getLessonType(lesson.lesson_type);
         await createNotification("booking", `${student?.name} booked ${lt.name} on ${lesson.date}`, lessonId, null, studentId);
