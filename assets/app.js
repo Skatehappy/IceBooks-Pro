@@ -33261,6 +33261,7 @@ function App() {
   const [registerCompetition, setRegisterCompetition] = (0, import_react.useState)(null);
   const [registerStudentId, setRegisterStudentId] = (0, import_react.useState)("");
   const [bookingLesson, setBookingLesson] = (0, import_react.useState)(null);
+  const [registeringEvent, setRegisteringEvent] = (0, import_react.useState)(null);
   const isCoach = profile?.role === "coach";
   (0, import_react.useEffect)(() => {
     if (profile && session) {
@@ -34143,6 +34144,50 @@ function App() {
       }).eq("id", bookingId);
       if (error) throw error;
       notify(isLateCancellation ? "Cancelled (late - may be billed)" : "Booking cancelled");
+      loadData(profile);
+    } catch (err) {
+      notify("Error: " + err.message);
+    }
+  };
+  const registerForEvent = async (eventId, studentId) => {
+    try {
+      const event = events.find((e) => e.id === eventId);
+      if (!event) throw new Error("Event not found");
+      const alreadyRegistered = bookings.find(
+        (b) => b.event_id === eventId && b.student_id === studentId && b.status !== "cancelled"
+      );
+      if (alreadyRegistered) {
+        notify("Student already registered for this event");
+        return;
+      }
+      const { error } = await supabase.from("bookings").insert({
+        event_id: eventId,
+        student_id: studentId,
+        booked_by: session.user.id,
+        // UUID from auth
+        status: "confirmed"
+      });
+      if (error) throw error;
+      if (!isCoach) {
+        const student = students.find((s) => s.id === studentId);
+        const et = getEventType(event.event_type);
+        await createNotification("event_registration", `${student?.name} registered for ${et.name}: ${event.name}`, null, eventId, studentId);
+      }
+      notify("Registered for event!");
+      loadData(profile);
+      setRegisteringEvent(null);
+    } catch (err) {
+      notify("Error: " + err.message);
+    }
+  };
+  const cancelEventRegistration = async (bookingId) => {
+    try {
+      const { error } = await supabase.from("bookings").update({
+        status: "cancelled",
+        cancelled_at: (/* @__PURE__ */ new Date()).toISOString()
+      }).eq("id", bookingId);
+      if (error) throw error;
+      notify("Event registration cancelled");
       loadData(profile);
     } catch (err) {
       notify("Error: " + err.message);
@@ -35186,7 +35231,7 @@ function App() {
             "button",
             {
               style: { ...styles.btn, ...styles.btnPrimary, ...styles.btnSmall },
-              onClick: () => alert("Event registration coming soon! Please contact your coach to sign up for: " + event.name)
+              onClick: () => setRegisteringEvent(event)
             },
             "Register"
           )
@@ -35252,7 +35297,23 @@ function App() {
       const lessonBookings = bookings.filter((b) => b.lesson_id === bookingLesson.id && b.status !== "cancelled");
       const spotsRemaining = bookingLesson.max_students - lessonBookings.length;
       return /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 8, fontSize: 12, color: "#64748b" } }, spotsRemaining, " of ", bookingLesson.max_students, " spot", bookingLesson.max_students !== 1 ? "s" : "", " available");
-    })())))));
+    })())))), registeringEvent && /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalOverlay, onClick: () => setRegisteringEvent(null) }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, "Register for Event"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: () => setRegisteringEvent(null) }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalBody }, /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 16, padding: 12, background: "#fef3c7", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { ...styles.badge, background: getEventType(registeringEvent.event_type).color, color: "white" } }, getEventType(registeringEvent.event_type).icon, " ", getEventType(registeringEvent.event_type).name)), /* @__PURE__ */ import_react.default.createElement("strong", null, registeringEvent.name), /* @__PURE__ */ import_react.default.createElement("br", null), registeringEvent.start_date, registeringEvent.end_date && registeringEvent.end_date !== registeringEvent.start_date ? ` - ${registeringEvent.end_date}` : "", /* @__PURE__ */ import_react.default.createElement("br", null), registeringEvent.location || "Location TBD"), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Select Student to Register"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (() => {
+      const eventRegs = bookings.filter((b) => b.event_id === registeringEvent.id && b.status !== "cancelled");
+      const registeredStudentIds = eventRegs.map((b) => b.student_id);
+      const availableStudents = students.filter((s) => !registeredStudentIds.includes(s.id));
+      if (availableStudents.length === 0) {
+        return /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 12, background: "#f0fdf4", borderRadius: 8, color: "#166534" } }, "All your students are already registered for this event.");
+      }
+      return availableStudents.map((s) => /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          key: s.id,
+          style: { ...styles.btn, ...styles.btnPrimary, textAlign: "left" },
+          onClick: () => registerForEvent(registeringEvent.id, s.id)
+        },
+        s.name
+      ));
+    })()))))));
   };
   const renderMyStudents = () => /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.cardHeader }, /* @__PURE__ */ import_react.default.createElement("h2", { style: styles.cardTitle }, "My Students"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => openStudentModal() }, "+ Add Student")), clients.length === 0 && /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 16, padding: 16, background: "#fef3c7", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("strong", null, "First, add your contact info:"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary, marginLeft: 12 }, onClick: () => openClientModal() }, "Add My Info")), students.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No students added yet.") : /* @__PURE__ */ import_react.default.createElement("div", null, students.map((s) => /* @__PURE__ */ import_react.default.createElement("div", { key: s.id, style: styles.listItem }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, s.name), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b", fontSize: 13, marginTop: 4 } }, s.isi_level && `ISI: ${s.isi_level}`, s.isi_level && s.usfsa_level && " \u2022 ", s.usfsa_level && `USFSA: ${s.usfsa_level}`)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnSecondary, marginRight: 8 }, onClick: () => openStudentModal(s) }, "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSmall, ...styles.btnDanger }, onClick: () => deleteStudent(s.id) }, "Delete"))))));
   const renderModal = () => {
