@@ -33285,14 +33285,16 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
   (0, import_react.useEffect)(() => {
-    if (!profile || !isCoach) return;
+    if (!profile) return;
+    const coachCheck = profile?.role === "coach";
+    if (!coachCheck) return;
     const refreshNotifications = async () => {
       const { data: notifs } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(50);
       setNotifications(notifs || []);
     };
     const interval = setInterval(refreshNotifications, 5 * 60 * 1e3);
     return () => clearInterval(interval);
-  }, [profile, isCoach]);
+  }, [profile]);
   (0, import_react.useEffect)(() => {
     supabase.auth.getSession().then(({ data: { session: session2 } }) => {
       setSession(session2);
