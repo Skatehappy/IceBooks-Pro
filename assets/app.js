@@ -34710,7 +34710,7 @@ function App() {
     calendarNav: { display: "flex", alignItems: "center", gap: 12 },
     calendarGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 },
     calendarDayHeader: { padding: 8, textAlign: "center", fontWeight: 600, color: "#64748b", fontSize: 12 },
-    calendarDay: { minHeight: isMobile ? 60 : 100, padding: 8, background: "white", borderRadius: 8, border: "1px solid #e2e8f0", cursor: "pointer" },
+    calendarDay: { minHeight: isMobile ? 60 : 70, padding: 8, background: "white", borderRadius: 8, border: "1px solid #e2e8f0", cursor: "pointer" },
     calendarDayToday: { border: "2px solid #7c3aed" },
     calendarDayNum: { fontWeight: 600, fontSize: 14, marginBottom: 4 },
     calendarLesson: { fontSize: 11, padding: "2px 4px", marginBottom: 2, borderRadius: 4, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
@@ -35251,7 +35251,7 @@ function App() {
           }
         },
         /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: isToday ? 700 : 400, fontSize: 14 } }, date.getDate()),
-        indicator && /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: indicator } }))
+        indicator && /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 4 } }, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: indicator } }))
       );
     }))), selectedDate && /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("h3", { style: { margin: "0 0 16px 0" } }, selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })), selectedDateLessons.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No lessons available on this day.") : /* @__PURE__ */ import_react.default.createElement("div", null, selectedDateLessons.sort((a, b) => a.start_time.localeCompare(b.start_time)).map((lesson) => {
       const lt = getLessonType(lesson.lesson_type);
