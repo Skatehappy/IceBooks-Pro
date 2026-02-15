@@ -35009,7 +35009,7 @@ function App() {
     today.setHours(0, 0, 0, 0);
     const todayStr = toDateStr(today);
     const myStudentIds = students.map((s) => s.id);
-    const days = getDays(currentDate);
+    const days = calendarView === "week" ? getWeekDates(currentDate).map((date) => ({ date, outside: false })) : calendarView === "day" ? [{ date: selectedDate || /* @__PURE__ */ new Date(), outside: false }] : getDays(currentDate);
     const getLessonsForDate = (date) => {
       const dateStr = toDateStr(date);
       return lessons.filter((l) => l.date === dateStr && l.is_published);
