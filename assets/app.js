@@ -34197,12 +34197,13 @@ function App() {
         });
         if (error) throw error;
       }
-      console.log("Creating notification - student:", studentId, "event:", eventId);
-      const student = students.find((s) => s.id === studentId);
-      const et = getEventType(event.event_type);
-      console.log("Student found:", student?.name, "Event type:", et.name);
-      await createNotification("event_registration", `${student?.name} registered for ${et.name}: ${event.name}`, null, eventId, studentId);
-      console.log("Notification created successfully");
+      try {
+        const student = students.find((s) => s.id === studentId);
+        const et = getEventType(event.event_type);
+        await createNotification("event_registration", `${student?.name} registered for ${et.name}: ${event.name}`, null, null, studentId);
+      } catch (notifErr) {
+        console.error("Event notification failed:", notifErr);
+      }
       notify("Registered for event!");
       loadData(profile);
       setRegisteringEvent(null);
