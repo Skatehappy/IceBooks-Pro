@@ -33649,15 +33649,15 @@ function App() {
       dayLessons.forEach((lesson) => {
         const lt = getLessonType(lesson.lesson_type);
         const venue = venues.find((v) => v.id === lesson.venue_id);
-        const lessonBookings2 = bookings.filter((b) => b.lesson_id === lesson.id && b.status !== "cancelled");
-        if (lessonBookings2.length === 0) {
+        const lessonBookings = bookings.filter((b) => b.lesson_id === lesson.id && b.status !== "cancelled");
+        if (lessonBookings.length === 0) {
           html += `<tr><td>${lesson.start_time} - ${lesson.end_time}</td><td>${lt.icon} ${lt.name}</td><td>${venue?.name || ""}</td><td colspan="3" style="color: #9ca3af;">No bookings</td></tr>`;
         } else {
-          lessonBookings2.forEach((booking, idx) => {
+          lessonBookings.forEach((booking, idx) => {
             const student = students.find((s) => s.id === booking.student_id);
             const client = clients.find((c) => c.id === student?.client_id);
             if (idx === 0) {
-              html += `<tr><td rowspan="${lessonBookings2.length}">${lesson.start_time} - ${lesson.end_time}</td><td rowspan="${lessonBookings2.length}">${lt.icon} ${lt.name}</td><td rowspan="${lessonBookings2.length}">${venue?.name || ""}</td>`;
+              html += `<tr><td rowspan="${lessonBookings.length}">${lesson.start_time} - ${lesson.end_time}</td><td rowspan="${lessonBookings.length}">${lt.icon} ${lt.name}</td><td rowspan="${lessonBookings.length}">${venue?.name || ""}</td>`;
             } else {
               html += "<tr>";
             }
@@ -33678,8 +33678,8 @@ function App() {
     lessons.forEach((l) => {
       const lt = getLessonType(l.lesson_type);
       const venue = venues.find((v) => v.id === l.venue_id);
-      const lessonBookings2 = bookings.filter((b) => b.lesson_id === l.id && b.status !== "cancelled");
-      const bookedNames = lessonBookings2.map((b) => students.find((s) => s.id === b.student_id)?.name).filter(Boolean).join(", ");
+      const lessonBookings = bookings.filter((b) => b.lesson_id === l.id && b.status !== "cancelled");
+      const bookedNames = lessonBookings.map((b) => students.find((s) => s.id === b.student_id)?.name).filter(Boolean).join(", ");
       const dateStr = l.date.replace(/-/g, "");
       const startStr = l.start_time.replace(/:/g, "") + "00";
       const endStr = l.end_time.replace(/:/g, "") + "00";
@@ -34854,9 +34854,9 @@ function App() {
           }), dayLessons.sort((a, b) => a.start_time.localeCompare(b.start_time)).map((l) => {
             const lt = getLessonType(l.lesson_type);
             const venue = venues.find((v) => v.id === l.venue_id);
-            const lessonBookings2 = bookings.filter((b) => b.lesson_id === l.id && b.status !== "cancelled");
-            const booked = lessonBookings2.length;
-            const bookedNames = lessonBookings2.map((b) => students.find((s) => s.id === b.student_id)?.name).filter(Boolean);
+            const lessonBookings = bookings.filter((b) => b.lesson_id === l.id && b.status !== "cancelled");
+            const booked = lessonBookings.length;
+            const bookedNames = lessonBookings.map((b) => students.find((s) => s.id === b.student_id)?.name).filter(Boolean);
             return /* @__PURE__ */ import_react.default.createElement(
               "div",
               {
@@ -35019,7 +35019,7 @@ function App() {
       return dayLessons.map((lesson) => {
         const lt = getLessonType(lesson.lesson_type);
         const venue = venues.find((v) => v.id === lesson.venue_id);
-        const lessonBookings2 = bookings.filter((b) => b.lesson_id === lesson.id && b.status !== "cancelled");
+        const lessonBookings = bookings.filter((b) => b.lesson_id === lesson.id && b.status !== "cancelled");
         return /* @__PURE__ */ import_react.default.createElement("div", { key: lesson.id, style: {
           ...styles.card,
           marginBottom: 16,
@@ -35031,7 +35031,7 @@ function App() {
           borderRadius: "50%",
           background: venue.color,
           marginLeft: 6
-        } }))), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b", fontSize: 14, marginTop: 4 } }, "Rate: $", lesson.rate, " | Max: ", lesson.max_students, " | Published: ", lesson.is_published ? "Yes" : "No"))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 8 } }, "Booked Students (", lessonBookings2.length, "/", lesson.max_students, ")"), lessonBookings2.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#94a3b8", fontStyle: "italic" } }, lesson.is_published ? "No bookings yet" : "Not published for booking") : /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gap: 12 } }, lessonBookings2.map((booking) => {
+        } }))), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b", fontSize: 14, marginTop: 4 } }, "Rate: $", lesson.rate, " | Max: ", lesson.max_students, " | Published: ", lesson.is_published ? "Yes" : "No"))), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 8 } }, "Booked Students (", lessonBookings.length, "/", lesson.max_students, ")"), lessonBookings.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#94a3b8", fontStyle: "italic" } }, lesson.is_published ? "No bookings yet" : "Not published for booking") : /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gap: 12 } }, lessonBookings.map((booking) => {
           const student = students.find((s) => s.id === booking.student_id);
           const client = clients.find((c) => c.id === student?.client_id);
           return /* @__PURE__ */ import_react.default.createElement("div", { key: booking.id, style: {
@@ -35287,9 +35287,9 @@ function App() {
         ))
       );
     }))), bookingLesson && /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalOverlay, onClick: () => setBookingLesson(null) }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modal, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalHeader }, /* @__PURE__ */ import_react.default.createElement("h3", { style: styles.modalTitle }, "Book Lesson"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: () => setBookingLesson(null) }, "\u2715")), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.modalBody }, /* @__PURE__ */ import_react.default.createElement("div", { style: { marginBottom: 16, padding: 12, background: "#f8fafc", borderRadius: 8 } }, /* @__PURE__ */ import_react.default.createElement("strong", null, formatDate(bookingLesson.date)), /* @__PURE__ */ import_react.default.createElement("br", null), formatTime(bookingLesson.start_time), " - ", formatTime(bookingLesson.end_time), /* @__PURE__ */ import_react.default.createElement("br", null), venues.find((v) => v.id === bookingLesson.venue_id)?.name || "TBD"), /* @__PURE__ */ import_react.default.createElement("div", { style: styles.formGroup }, /* @__PURE__ */ import_react.default.createElement("label", { style: styles.label }, "Select Student"), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, (() => {
-      const lessonBookings2 = bookings.filter((b) => b.lesson_id === bookingLesson.id && b.status !== "cancelled");
-      const bookedStudentIds = lessonBookings2.map((b) => b.student_id);
-      const spotsRemaining = bookingLesson.max_students - lessonBookings2.length;
+      const lessonBookings = bookings.filter((b) => b.lesson_id === bookingLesson.id && b.status !== "cancelled");
+      const bookedStudentIds = lessonBookings.map((b) => b.student_id);
+      const spotsRemaining = bookingLesson.max_students - lessonBookings.length;
       const availableStudents = students.filter((s) => !bookedStudentIds.includes(s.id));
       if (spotsRemaining <= 0) {
         return /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 12, background: "#fef3c7", borderRadius: 8, color: "#92400e" } }, "This lesson is now full. Please select a different time.");
@@ -35310,8 +35310,8 @@ function App() {
         s.name
       ));
     })()), (() => {
-      const lessonBookings2 = bookings.filter((b) => b.lesson_id === bookingLesson.id && b.status !== "cancelled");
-      const spotsRemaining = bookingLesson.max_students - lessonBookings2.length;
+      const lessonBookings = bookings.filter((b) => b.lesson_id === bookingLesson.id && b.status !== "cancelled");
+      const spotsRemaining = bookingLesson.max_students - lessonBookings.length;
       return /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 8, fontSize: 12, color: "#64748b" } }, spotsRemaining, " of ", bookingLesson.max_students, " spot", bookingLesson.max_students !== 1 ? "s" : "", " available");
     })())))));
   };
@@ -35411,8 +35411,8 @@ function App() {
         }
       },
       /* @__PURE__ */ import_react.default.createElement("option", { value: "" }, "+ Add student to this lesson..."),
-      students.filter((s) => !lessonBookings.some((b) => b.lesson_id === editingItem.id && b.student_id === s.id)).map((s) => /* @__PURE__ */ import_react.default.createElement("option", { key: s.id, value: s.id }, s.name))
-    )), /* @__PURE__ */ import_react.default.createElement("div", null, lessonBookings.filter((b) => b.lesson_id === editingItem.id).map((booking) => {
+      students.filter((s) => !bookings.some((b) => b.lesson_id === editingItem.id && b.student_id === s.id && b.status !== "cancelled")).map((s) => /* @__PURE__ */ import_react.default.createElement("option", { key: s.id, value: s.id }, s.name))
+    )), /* @__PURE__ */ import_react.default.createElement("div", null, bookings.filter((b) => b.lesson_id === editingItem.id && b.status !== "cancelled").map((booking) => {
       const student = students.find((s) => s.id === booking.student_id);
       return /* @__PURE__ */ import_react.default.createElement("div", { key: booking.id, style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f8fafc", borderRadius: 6, marginBottom: 8 } }, /* @__PURE__ */ import_react.default.createElement("span", null, student?.name || "Unknown"), /* @__PURE__ */ import_react.default.createElement(
         "button",
