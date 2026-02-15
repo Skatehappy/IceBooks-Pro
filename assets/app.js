@@ -33285,6 +33285,15 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
   (0, import_react.useEffect)(() => {
+    if (!profile || !isCoach) return;
+    const refreshNotifications = async () => {
+      const { data: notifs } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(50);
+      setNotifications(notifs || []);
+    };
+    const interval = setInterval(refreshNotifications, 5 * 60 * 1e3);
+    return () => clearInterval(interval);
+  }, [profile, isCoach]);
+  (0, import_react.useEffect)(() => {
     supabase.auth.getSession().then(({ data: { session: session2 } }) => {
       setSession(session2);
       if (session2) loadProfile(session2.user.id);
@@ -34930,10 +34939,44 @@ function App() {
       "\u26FD Add Mileage"
     ), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnSecondary }, onClick: printDaySchedule }, "\u{1F5A8}\uFE0F Print"))), (() => {
       const dayLessons = lessons.filter((l) => l.date === selectedDate.toISOString().split("T")[0]).sort((a, b) => a.start_time.localeCompare(b.start_time));
-      if (dayLessons.length === 0) {
-        return /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No lessons scheduled for this day");
-      }
-      return dayLessons.map((lesson) => {
+      const dayEventsSchedule = getEventsForDate(selectedDate);
+      return /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, dayEventsSchedule.map((event) => {
+        const et = getEventType(event.event_type);
+        const venue = venues.find((v) => v.id === event.venue_id);
+        const eventRegistrations = bookings.filter((b) => b.event_id === event.id && b.status !== "cancelled");
+        return /* @__PURE__ */ import_react.default.createElement("div", { key: `event-${event.id}`, style: {
+          ...styles.card,
+          marginBottom: 16,
+          borderLeft: `4px solid ${et.color}`,
+          background: "#fef3c7"
+        } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { padding: 16 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12 } }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 18, fontWeight: 600, marginBottom: 4 } }, et.icon, " ", event.name), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b", fontSize: 14 } }, event.start_date, event.end_date && event.end_date !== event.start_date ? ` - ${event.end_date}` : "", venue && /* @__PURE__ */ import_react.default.createElement("span", { style: { marginLeft: 12 } }, "\u{1F4CD} ", venue.name)), event.notes && /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 8, fontSize: 13, color: "#64748b", fontStyle: "italic" } }, event.notes)), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            style: { ...styles.btn, ...styles.btnSecondary, ...styles.btnSmall },
+            onClick: () => openEventModal(event)
+          },
+          "Edit"
+        )), /* @__PURE__ */ import_react.default.createElement("div", { style: { marginTop: 12, paddingTop: 12, borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600, marginBottom: 8 } }, "Registered Students (", eventRegistrations.length, ")"), eventRegistrations.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#94a3b8", fontStyle: "italic" } }, "No registrations yet") : /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gap: 12 } }, eventRegistrations.map((registration) => {
+          const student = students.find((s) => s.id === registration.student_id);
+          const client = clients.find((c) => c.id === student?.client_id);
+          return /* @__PURE__ */ import_react.default.createElement("div", { key: registration.id, style: {
+            background: "#f8fafc",
+            padding: 12,
+            borderRadius: 6,
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr auto" : "2fr 2fr 1fr auto",
+            gap: 12,
+            alignItems: "center"
+          } }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600 } }, student?.name || "Unknown"), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 13, color: "#64748b" } }, student?.isi_level && `ISI: ${student.isi_level}`, student?.isi_level && student?.usfsa_level && " | ", student?.usfsa_level && `USFSA: ${student.usfsa_level}`)), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 13 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 500 } }, client?.name), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b" } }, client?.phone), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b" } }, client?.email)), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 13, color: "#64748b" } }, "Registered: ", new Date(registration.booked_at || registration.created_at).toLocaleDateString()), /* @__PURE__ */ import_react.default.createElement(
+            "button",
+            {
+              style: { ...styles.btn, ...styles.btnDanger, ...styles.btnSmall },
+              onClick: () => cancelEventRegistration(registration.id)
+            },
+            "Remove"
+          ));
+        })))));
+      }), dayLessons.length === 0 && dayEventsSchedule.length === 0 && /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No lessons or events scheduled for this day"), dayLessons.map((lesson) => {
         const lt = getLessonType(lesson.lesson_type);
         const venue = venues.find((v) => v.id === lesson.venue_id);
         const lessonBookings = bookings.filter((b) => b.lesson_id === lesson.id && b.status !== "cancelled");
@@ -34960,7 +35003,7 @@ function App() {
             gap: 12
           } }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 600 } }, student?.name || "Unknown"), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 13, color: "#64748b" } }, student?.isi_level && `ISI: ${student.isi_level}`, student?.isi_level && student?.usfsa_level && " | ", student?.usfsa_level && `USFSA: ${student.usfsa_level}`)), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 13 } }, /* @__PURE__ */ import_react.default.createElement("div", { style: { fontWeight: 500 } }, client?.name), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b" } }, client?.phone), /* @__PURE__ */ import_react.default.createElement("div", { style: { color: "#64748b" } }, client?.email)), /* @__PURE__ */ import_react.default.createElement("div", { style: { fontSize: 13, color: "#64748b" } }, "Booked: ", new Date(booking.created_at).toLocaleDateString()));
         })))));
-      });
+      }));
     })()));
   };
   const renderClients = () => /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.cardHeader }, /* @__PURE__ */ import_react.default.createElement("h2", { style: styles.cardTitle }, "Clients"), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => openClientModal() }, "+ Add Client")), clients.length === 0 ? /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, "No clients yet. Add your first client!") : /* @__PURE__ */ import_react.default.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ import_react.default.createElement("table", { style: styles.table }, /* @__PURE__ */ import_react.default.createElement("thead", null, /* @__PURE__ */ import_react.default.createElement("tr", null, /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Name"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Email"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Phone"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Students"), /* @__PURE__ */ import_react.default.createElement("th", { style: styles.th }, "Actions"))), /* @__PURE__ */ import_react.default.createElement("tbody", null, clients.map((c) => {
