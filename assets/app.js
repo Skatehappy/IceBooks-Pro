@@ -35166,7 +35166,7 @@ function App() {
     today.setHours(0, 0, 0, 0);
     const todayStr = toDateStr(today);
     const myStudentIds = students.map((s) => s.id);
-    const days = getDays(currentDate);
+    const days = calendarView === "week" ? getWeekDates(currentDate).map((date) => ({ date, outside: false })) : getDays(currentDate);
     const getLessonsForDate = (date) => {
       const dateStr = toDateStr(date);
       return lessons.filter((l) => l.date === dateStr && l.is_published);
@@ -35207,7 +35207,28 @@ function App() {
       return /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, /* @__PURE__ */ import_react.default.createElement("p", null, "Add a student first before booking lessons."), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => setActiveTab("mystudents") }, "Add Student")));
     }
     const selectedDateLessons = selectedDate ? getLessonsForDate(selectedDate) : [];
-    return /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement(
+    return /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        style: { ...styles.btn, ...calendarView === "day" ? styles.btnPrimary : styles.btnSecondary },
+        onClick: () => setCalendarView("day")
+      },
+      "Day"
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        style: { ...styles.btn, ...calendarView === "week" ? styles.btnPrimary : styles.btnSecondary },
+        onClick: () => setCalendarView("week")
+      },
+      "Week"
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        style: { ...styles.btn, ...calendarView === "month" ? styles.btnPrimary : styles.btnSecondary },
+        onClick: () => setCalendarView("month")
+      },
+      "Month"
+    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         style: { ...styles.btn, ...styles.btnSecondary },
@@ -35231,7 +35252,7 @@ function App() {
         }
       },
       "Next \u2192"
-    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 16, marginBottom: 12, fontSize: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#22c55e", marginRight: 4 } }), " Your Booking"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#3b82f6", marginRight: 4 } }), " Available"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#9ca3af", marginRight: 4 } }), " Full/Past")), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: "#e2e8f0" } }, DAY_NAMES.map((d) => /* @__PURE__ */ import_react.default.createElement("div", { key: d, style: { background: "#f1f5f9", padding: 8, textAlign: "center", fontWeight: 600, fontSize: 12 } }, d)), days.map(({ date, outside }, idx) => {
+    )), calendarView !== "day" && /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 16, marginBottom: 12, fontSize: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#22c55e", marginRight: 4 } }), " Your Booking"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#3b82f6", marginRight: 4 } }), " Available"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#9ca3af", marginRight: 4 } }), " Full/Past")), calendarView !== "day" && /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: "#e2e8f0" } }, DAY_NAMES.map((d) => /* @__PURE__ */ import_react.default.createElement("div", { key: d, style: { background: "#f1f5f9", padding: 8, textAlign: "center", fontWeight: 600, fontSize: 12 } }, d)), days.map(({ date, outside }, idx) => {
       const dateStr = toDateStr(date);
       const isToday = dateStr === todayStr;
       const isSelected = selectedDate && toDateStr(date) === toDateStr(selectedDate);
