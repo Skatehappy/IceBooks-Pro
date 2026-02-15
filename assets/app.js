@@ -34163,8 +34163,8 @@ function App() {
       const { error } = await supabase.from("bookings").insert({
         event_id: eventId,
         student_id: studentId,
-        booked_by: session.user.id,
-        // UUID from auth
+        booked_by: profile.id,
+        // Use profile.id (UUID in profiles table)
         status: "confirmed"
       });
       if (error) throw error;
