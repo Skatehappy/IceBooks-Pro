@@ -34508,7 +34508,7 @@ function App() {
     row: { display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 },
     // Modal
     modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1e3 },
-    modal: { background: "white", borderRadius: 16, width: "100%", maxWidth: 1200, maxHeight: "60vh", overflow: "auto" },
+    modal: { background: "white", borderRadius: 8, width: "calc(100% - 80px)", height: "calc(100vh - 80px)", margin: "40px", maxWidth: "none", maxHeight: "none", overflow: "auto", padding: 40 },
     modalHeader: { padding: "16px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" },
     modalTitle: { fontSize: 18, fontWeight: 600 },
     modalBody: { padding: 20 },
