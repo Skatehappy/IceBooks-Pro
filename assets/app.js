@@ -33489,6 +33489,7 @@ function App() {
   const getAllLessonTypes = () => [...LESSON_TYPES, ...customLessonTypes];
   const createNotification = async (type, message, lessonId = null, eventId = null, studentId = null) => {
     try {
+      console.log("createNotification called:", { type, message, lessonId, eventId, studentId });
       const { error } = await supabase.from("notifications").insert({
         type,
         message,
@@ -33497,6 +33498,11 @@ function App() {
         student_id: studentId,
         read: false
       });
+      if (error) {
+        console.error("Notification insert error:", error);
+        throw error;
+      }
+      console.log("Notification inserted successfully");
       if (!error) loadData(profile);
     } catch (err) {
       console.error("Notification error:", err);
@@ -34123,11 +34129,9 @@ function App() {
         status: "confirmed"
       });
       if (error) throw error;
-      if (!isCoach) {
-        const student = students.find((s) => s.id === studentId);
-        const lt = getLessonType(lesson.lesson_type);
-        await createNotification("booking", `${student?.name} booked ${lt.name} on ${lesson.date}`, lessonId, null, studentId);
-      }
+      const student = students.find((s) => s.id === studentId);
+      const lt = getLessonType(lesson.lesson_type);
+      await createNotification("booking", `${student?.name} booked ${lt.name} on ${lesson.date}`, lessonId, null, studentId);
       notify("Lesson booked!");
       loadData(profile);
     } catch (err) {
@@ -34184,11 +34188,12 @@ function App() {
         });
         if (error) throw error;
       }
-      if (!isCoach) {
-        const student = students.find((s) => s.id === studentId);
-        const et = getEventType(event.event_type);
-        await createNotification("event_registration", `${student?.name} registered for ${et.name}: ${event.name}`, null, eventId, studentId);
-      }
+      console.log("Creating notification - student:", studentId, "event:", eventId);
+      const student = students.find((s) => s.id === studentId);
+      const et = getEventType(event.event_type);
+      console.log("Student found:", student?.name, "Event type:", et.name);
+      await createNotification("event_registration", `${student?.name} registered for ${et.name}: ${event.name}`, null, eventId, studentId);
+      console.log("Notification created successfully");
       notify("Registered for event!");
       loadData(profile);
       setRegisteringEvent(null);
