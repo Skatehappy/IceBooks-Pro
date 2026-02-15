@@ -33491,12 +33491,10 @@ function App() {
   const getAllLessonTypes = () => [...LESSON_TYPES, ...customLessonTypes];
   const createNotification = async (type, message, lessonId = null, eventId = null, studentId = null) => {
     try {
-      console.log("createNotification called:", { type, message, lessonId, eventId, studentId });
       const { error } = await supabase.from("notifications").insert({
         type,
         message,
         lesson_id: lessonId,
-        event_id: eventId,
         student_id: studentId,
         read: false
       });
@@ -33504,8 +33502,7 @@ function App() {
         console.error("Notification insert error:", error);
         throw error;
       }
-      console.log("Notification inserted successfully");
-      if (!error) loadData(profile);
+      loadData(profile);
     } catch (err) {
       console.error("Notification error:", err);
     }
@@ -34112,25 +34109,35 @@ function App() {
     try {
       const lesson = lessons.find((l) => l.id === lessonId);
       if (!lesson) throw new Error("Lesson not found");
-      const { data: freshBookings, error: fetchError } = await supabase.from("bookings").select("id, student_id").eq("lesson_id", lessonId).neq("status", "cancelled");
+      const { data: allBookings, error: fetchError } = await supabase.from("bookings").select("*").eq("lesson_id", lessonId);
       if (fetchError) throw fetchError;
-      if (freshBookings.length >= lesson.max_students) {
+      const activeBookings = allBookings.filter((b) => b.status !== "cancelled");
+      const existingBooking = allBookings.find((b) => b.student_id === studentId);
+      if (activeBookings.length >= lesson.max_students) {
         notify("Lesson is full");
         loadData(profile);
         return;
       }
-      const alreadyBooked = freshBookings.find((b) => b.student_id === studentId);
-      if (alreadyBooked) {
+      if (existingBooking && existingBooking.status !== "cancelled") {
         notify("Student already booked");
         return;
       }
-      const { error } = await supabase.from("bookings").insert({
-        lesson_id: lessonId,
-        student_id: studentId,
-        booked_by: profile.id,
-        status: "confirmed"
-      });
-      if (error) throw error;
+      if (existingBooking && existingBooking.status === "cancelled") {
+        const { error } = await supabase.from("bookings").update({
+          status: "confirmed",
+          cancelled_at: null,
+          is_late_cancellation: false
+        }).eq("id", existingBooking.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("bookings").insert({
+          lesson_id: lessonId,
+          student_id: studentId,
+          booked_by: profile.id,
+          status: "confirmed"
+        });
+        if (error) throw error;
+      }
       const student = students.find((s) => s.id === studentId);
       const lt = getLessonType(lesson.lesson_type);
       await createNotification("booking", `${student?.name} booked ${lt.name} on ${lesson.date}`, lessonId, null, studentId);
