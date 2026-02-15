@@ -33263,6 +33263,13 @@ function App() {
   const [bookingLesson, setBookingLesson] = (0, import_react.useState)(null);
   const isCoach = profile?.role === "coach";
   (0, import_react.useEffect)(() => {
+    if (profile && activeTab === "calendar") {
+      if (!isCoach) {
+        setActiveTab("booking");
+      }
+    }
+  }, [profile]);
+  (0, import_react.useEffect)(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -35050,7 +35057,28 @@ function App() {
       return /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.empty }, /* @__PURE__ */ import_react.default.createElement("p", null, "Add a student first before booking lessons."), /* @__PURE__ */ import_react.default.createElement("button", { style: { ...styles.btn, ...styles.btnPrimary }, onClick: () => setActiveTab("mystudents") }, "Add Student")));
     }
     const selectedDateLessons = selectedDate ? getLessonsForDate(selectedDate) : [];
-    return /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement(
+    return /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("div", { style: styles.card }, /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16, justifyContent: "center" } }, /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        style: { ...styles.btn, ...calendarView === "day" ? styles.btnPrimary : styles.btnSecondary },
+        onClick: () => setCalendarView("day")
+      },
+      "Day"
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        style: { ...styles.btn, ...calendarView === "week" ? styles.btnPrimary : styles.btnSecondary },
+        onClick: () => setCalendarView("week")
+      },
+      "Week"
+    ), /* @__PURE__ */ import_react.default.createElement(
+      "button",
+      {
+        style: { ...styles.btn, ...calendarView === "month" ? styles.btnPrimary : styles.btnSecondary },
+        onClick: () => setCalendarView("month")
+      },
+      "Month"
+    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 } }, /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         style: { ...styles.btn, ...styles.btnSecondary },
