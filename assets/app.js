@@ -35084,25 +35084,37 @@ function App() {
         style: { ...styles.btn, ...styles.btnSecondary },
         onClick: () => {
           const d = new Date(currentDate);
-          d.setMonth(d.getMonth() - 1);
+          if (calendarView === "day") {
+            d.setDate(d.getDate() - 1);
+          } else if (calendarView === "week") {
+            d.setDate(d.getDate() - 7);
+          } else {
+            d.setMonth(d.getMonth() - 1);
+          }
           setCurrentDate(d);
-          setSelectedDate(null);
+          setSelectedDate(calendarView === "day" ? d : null);
         }
       },
       "\u2190 Prev"
-    ), /* @__PURE__ */ import_react.default.createElement("h2", { style: { margin: 0, fontSize: 18 } }, currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })), /* @__PURE__ */ import_react.default.createElement(
+    ), /* @__PURE__ */ import_react.default.createElement("h2", { style: { margin: 0, fontSize: 18 } }, calendarView === "day" ? currentDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })), /* @__PURE__ */ import_react.default.createElement(
       "button",
       {
         style: { ...styles.btn, ...styles.btnSecondary },
         onClick: () => {
           const d = new Date(currentDate);
-          d.setMonth(d.getMonth() + 1);
+          if (calendarView === "day") {
+            d.setDate(d.getDate() + 1);
+          } else if (calendarView === "week") {
+            d.setDate(d.getDate() + 7);
+          } else {
+            d.setMonth(d.getMonth() + 1);
+          }
           setCurrentDate(d);
-          setSelectedDate(null);
+          setSelectedDate(calendarView === "day" ? d : null);
         }
       },
       "Next \u2192"
-    )), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 16, marginBottom: 12, fontSize: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#22c55e", marginRight: 4 } }), " Your Booking"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#3b82f6", marginRight: 4 } }), " Available"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#9ca3af", marginRight: 4 } }), " Full/Past")), /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: "#e2e8f0" } }, DAY_NAMES.map((d) => /* @__PURE__ */ import_react.default.createElement("div", { key: d, style: { background: "#f1f5f9", padding: 8, textAlign: "center", fontWeight: 600, fontSize: 12 } }, d)), days.map(({ date, outside }, idx) => {
+    )), calendarView !== "day" && /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "flex", gap: 16, marginBottom: 12, fontSize: 12, flexWrap: "wrap" } }, /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#22c55e", marginRight: 4 } }), " Your Booking"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#3b82f6", marginRight: 4 } }), " Available"), /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement("span", { style: { display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: "#9ca3af", marginRight: 4 } }), " Full/Past")), calendarView !== "day" && /* @__PURE__ */ import_react.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, background: "#e2e8f0" } }, DAY_NAMES.map((d) => /* @__PURE__ */ import_react.default.createElement("div", { key: d, style: { background: "#f1f5f9", padding: 8, textAlign: "center", fontWeight: 600, fontSize: 12 } }, d)), days.map(({ date, outside }, idx) => {
       const dateStr = toDateStr(date);
       const isToday = dateStr === todayStr;
       const isSelected = selectedDate && toDateStr(date) === toDateStr(selectedDate);
