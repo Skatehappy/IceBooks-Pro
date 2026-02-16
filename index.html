@@ -6,32 +6,9 @@
   <title>IceBooks Pro - Figure Skating Coach Management</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛸️</text></svg>">
   <script src="./config.js"></script>
+  <script type="module" crossorigin src="./assets/app.js"></script>
 </head>
 <body>
   <div id="root"></div>
-  <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0"
-      }
-    }
-  </script>
-  <script type="module">
-    import React from 'react';
-    import ReactDOM from 'react-dom/client';
-    import { createClient } from '@supabase/supabase-js';
-    
-    window.React = React;
-    window.supabase = { createClient };
-    
-    import('./assets/App.js').then(module => {
-      const App = module.default;
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(App));
-    });
-  </script>
 </body>
 </html>
