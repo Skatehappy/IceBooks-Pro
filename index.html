@@ -27,7 +27,7 @@
     window.React = React;
     window.supabase = { createClient };
     
-    import('./assets/App.jsx').then(module => {
+    import('./assets/App.js').then(module => {
       const App = module.default;
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(App));
