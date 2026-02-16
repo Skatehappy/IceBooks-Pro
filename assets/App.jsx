@@ -61,7 +61,7 @@ const EVENT_TYPES = [
 
 const EXPENSE_CATEGORIES = [
   'Ice Time', 'Music/Choreography', 'Costumes', 'Equipment', 'Travel', 
-  'Training/Seminars', 'Coaching Fees', 'Membership Dues', 'Insurance', 'Other'
+  'Training/Seminars', 'Coaching Fees', 'Membership Dues', 'Insurance'
 ];
 
 const PAYMENT_METHODS = ['Cash', 'Check', 'Venmo', 'PayPal', 'Zelle', 'Credit Card', 'Bank Transfer'];
@@ -254,7 +254,7 @@ export default function App() {
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [calendarView, setCalendarView] = useState(isMobile ? 'day' : 'week');
+  const [calendarView, setCalendarView] = useState('day'); // Default to day view
   const [selectedDate, setSelectedDate] = useState(isMobile ? new Date() : null); // For day view
   
   // Notifications State
@@ -2065,10 +2065,10 @@ export default function App() {
     modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 1000 },
     modal: { background: 'white', borderRadius: 16, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'auto' },
     modalWide: { background: 'white', borderRadius: 16, width: '100%', maxWidth: 1000, maxHeight: '90vh', overflow: 'auto' },
-    modalHeader: { padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    modalHeader: { padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     modalTitle: { fontSize: 18, fontWeight: 600 },
     modalBody: { padding: 20 },
-    modalFooter: { padding: '16px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: 12 },
+    modalFooter: { padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: 12 },
 
     // Calendar
     calendarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 },
@@ -4034,10 +4034,9 @@ export default function App() {
 
     const closeModal = () => { setShowModal(null); setEditingItem(null); };
 
-    return (
-      <div style={styles.modalOverlay} onClick={closeModal}>
-        <div style={showModal === 'student' ? styles.modalWide : styles.modal} onClick={e => e.stopPropagation()}>
-          
+    // Student modal renders full-page outside the normal modal structure
+    if (showModal === 'student') {
+      return (
           {/* LESSON MODAL */}
           {showModal === 'lesson' && (
             <>
@@ -5358,7 +5357,14 @@ export default function App() {
                 </button>
               </div>
             </div>
-          )}
+          )
+      );
+    }
+
+    // All other modals use the normal modal structure
+    return (
+      <div style={styles.modalOverlay} onClick={closeModal}>
+        <div style={styles.modal} onClick={e => e.stopPropagation()}>
 
           {/* VENUE MODAL */}
           {showModal === 'venue' && (
