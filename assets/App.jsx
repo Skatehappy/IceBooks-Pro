@@ -450,7 +450,10 @@ export default function App() {
         setMileage(results[9].data || []);
         
         // Load payment settings for coach
-        const { data: settings } = await supabase.from('settings').select('*').single();
+        const { data: settings, error: settingsError } = await supabase.from('settings').select('*').single();
+        if (settingsError) {
+          console.log('Settings not found, using defaults:', settingsError);
+        }
         if (settings) {
           setPaymentSettings({
             cash: settings.payment_cash || false,
@@ -463,9 +466,16 @@ export default function App() {
           
           // Load report settings
           if (settings.expense_categories) {
-            setReportSettings(prev => ({ ...prev, expense_categories: settings.expense_categories }));
+            try {
+              const categories = typeof settings.expense_categories === 'string' 
+                ? JSON.parse(settings.expense_categories) 
+                : settings.expense_categories;
+              setReportSettings(prev => ({ ...prev, expense_categories: categories }));
+            } catch (e) {
+              console.error('Error parsing expense categories:', e);
+            }
           }
-          if (settings.mileage_rate) {
+          if (settings.mileage_rate !== undefined && settings.mileage_rate !== null) {
             setReportSettings(prev => ({ ...prev, mileage_rate: settings.mileage_rate }));
           }
           if (settings.vehicle_expense_method) {
@@ -3058,7 +3068,7 @@ export default function App() {
                   }
                   const newCats = reportSettings.expense_categories.filter((_, i) => i !== idx);
                   setReportSettings({ ...reportSettings, expense_categories: newCats });
-                  await supabase.from('settings').update({ expense_categories: newCats }).eq('id', 1);
+                  await supabase.from('settings').update({ expense_categories: JSON.stringify(newCats) }).eq('id', 1);
                   notify('Category removed');
                 }}
               >
@@ -3089,7 +3099,7 @@ export default function App() {
               }
               const newCats = [...reportSettings.expense_categories, newCat];
               setReportSettings({ ...reportSettings, expense_categories: newCats });
-              await supabase.from('settings').update({ expense_categories: newCats }).eq('id', 1);
+              await supabase.from('settings').update({ expense_categories: JSON.stringify(newCats) }).eq('id', 1);
               input.value = '';
               notify('Category added');
             }}
