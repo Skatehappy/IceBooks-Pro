@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { copyFileSync } from 'fs';
 
 export default defineConfig({
+  base: '/IceBooks-Pro/',
   plugins: [
     react(),
     {
