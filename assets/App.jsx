@@ -294,6 +294,13 @@ export default function App() {
     vehicle_expense_method: 'standard'
   });
 
+  // Report UI State
+  const [reportType, setReportType] = useState('pl');
+  const [reportDateRange, setReportDateRange] = useState({
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+
   // Copy Day/Week State
   const [copySource, setCopySource] = useState(null);
   const [copyTargetDays, setCopyTargetDays] = useState([]);
@@ -2711,12 +2718,6 @@ export default function App() {
   // ============================================
 
   const renderReports = () => {
-    const [reportType, setReportType] = React.useState('pl');
-    const [dateRange, setDateRange] = React.useState({
-      start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-      end: new Date().toISOString().split('T')[0]
-    });
-
     return (
       <div style={styles.card}>
         <div style={styles.cardHeader}>
@@ -2751,8 +2752,8 @@ export default function App() {
               <input 
                 type="date" 
                 style={styles.input} 
-                value={dateRange.start}
-                onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
+                value={reportDateRange.start}
+                onChange={e => setReportDateRange({ ...reportDateRange, start: e.target.value })}
               />
             </div>
             <div style={{ flex: '1 1 200px' }}>
@@ -2760,15 +2761,15 @@ export default function App() {
               <input 
                 type="date" 
                 style={styles.input} 
-                value={dateRange.end}
-                onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
+                value={reportDateRange.end}
+                onChange={e => setReportDateRange({ ...reportDateRange, end: e.target.value })}
               />
             </div>
           </div>
         </div>
 
-        {reportType === 'pl' && renderProfitLoss(dateRange)}
-        {reportType === 'mileage' && renderMileageReport(dateRange)}
+        {reportType === 'pl' && renderProfitLoss(reportDateRange)}
+        {reportType === 'mileage' && renderMileageReport(reportDateRange)}
       </div>
     );
   };
