@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { copyFileSync } from 'fs';
+import { copyFileSync, existsSync } from 'fs';
 
 export default defineConfig({
   base: '/IceBooks-Pro/',
@@ -9,7 +9,9 @@ export default defineConfig({
     {
       name: 'copy-config',
       closeBundle() {
-        copyFileSync('config.js', 'dist/config.js');
+        if (existsSync('config.js')) {
+          copyFileSync('config.js', 'dist/config.js');
+        }
       }
     }
   ],
