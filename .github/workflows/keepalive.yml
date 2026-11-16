@@ -1,0 +1,25 @@
+name: Supabase keep-alive
+# One lightweight authenticated read every 3 days so the free Supabase project never auto-pauses.
+# Credentials come from GitHub Actions secrets only (SUPABASE_URL, SUPABASE_ANON_KEY).
+on:
+  schedule:
+    - cron: '17 12 */3 * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read one row from the project database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY" || { echo "::error::missing secrets"; exit 1; }
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' --retry 3 --retry-delay 10 \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/profiles?select=id&limit=1")
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { echo "::error::keep-alive read failed ($code)"; exit 1; }
