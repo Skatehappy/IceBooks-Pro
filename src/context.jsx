@@ -3,11 +3,18 @@ import { supabase } from './lib/supabase.js';
 import { makeStyles } from './ui/styles.js';
 import { toISODate } from './lib/format.js';
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_MILEAGE_RATE, DEFAULT_LATE_CANCEL_HOURS } from './lib/constants.js';
-import { isRecoveryHash } from './lib/passwordReset.js';
+import {
+  createRecoveryGate, browserStorage, parseAuthHash, parseAuthError, cleanAuthUrl, subscribeLockChanges, shouldLoadData,
+  LOCKING_METHODS,
+} from './lib/recoveryLock.js';
 
-// Captured at module load, before supabase-js finishes processing (and clears) the URL hash, so a
-// recovery landing shows the "Set a new password" screen from the first render.
-const LANDED_ON_RECOVERY = typeof window !== 'undefined' && isRecoveryHash(window.location.hash);
+// Captured at module load, before supabase-js finishes processing (and clears) the URL hash. The landing
+// hash is only a hint for the first render: the persisted lock + the token's amr claim are what keep a
+// recovery session locked across reloads, back/forward, deep links and new tabs (see recoveryLock.js).
+const LANDING = typeof window !== 'undefined' ? parseAuthHash(window.location.hash) : { type: null, accessToken: null };
+const LANDED_LOCKED = LOCKING_METHODS.includes(LANDING.type) && !!LANDING.accessToken;
+// An expired/invalid email link lands as #error=...&error_code=otp_expired; supabase-js leaves it in the URL.
+const LANDING_AUTH_ERROR = typeof window !== 'undefined' ? parseAuthError(window.location.href) : null;
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -51,10 +58,18 @@ export function AppProvider({ children }) {
   const [navParams, setNavParams] = useState(null);
   // True while the user arrived via a password-reset link and hasn't set a new password yet.
   // App renders the reset screen instead of the app while this is set (it wins over SIGNED_IN).
-  const [recovering, setRecovering] = useState(LANDED_ON_RECOVERY);
+  // Derived from the recovery gate (persisted lock + amr), never from the URL alone.
+  const [recovering, setRecovering] = useState(LANDED_LOCKED);
+  const [authError, setAuthError] = useState(LANDING_AUTH_ERROR ? LANDING_AUTH_ERROR.message : '');
   const toastTimer = useRef(null);
   const profileRef = useRef(null);
   profileRef.current = profile;
+  const gateRef = useRef(null);
+  if (!gateRef.current) gateRef.current = createRecoveryGate({ getStorage: browserStorage, landing: LANDING });
+  const lockedRef = useRef(LANDED_LOCKED);
+  const sessionRef = useRef(null);
+  const loadedForRef = useRef(null);
+  const applyAuthRef = useRef(() => {});
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -79,7 +94,7 @@ export function AppProvider({ children }) {
   const isCoach = profile?.role === 'coach';
 
   const reload = useCallback(async (p = profileRef.current) => {
-    if (!p) return;
+    if (!p || lockedRef.current) return; // never load data for a locked (recovery) session
     try {
       if (p.role === 'coach') {
         const q = (t, order, asc = true) => supabase.from(t).select('*').order(order, { ascending: asc });
@@ -100,6 +115,7 @@ export function AppProvider({ children }) {
           await supabase.from('bookings').update({ status: 'completed' }).in('id', past.map((b) => b.id));
           bk = bk.map((b) => (past.includes(b) ? { ...b, status: 'completed' } : b));
         }
+        if (lockedRef.current) return;
         setData({
           lessons: lessons.data || [], events: events.data || [], venues: venues.data || [], clients: clients.data || [],
           students: students.data || [], bookings: bk, invoices: invoices.data || [], invoicePayments: pays.data || [],
@@ -115,6 +131,7 @@ export function AppProvider({ children }) {
           supabase.from('bookings').select('*'),
           supabase.from('client_settings').select('*').maybeSingle(),
         ]);
+        if (lockedRef.current) return;
         const ids = (clients.data || []).map((c) => c.id);
         let students = [];
         if (ids.length) students = (await supabase.from('students').select('*').in('client_id', ids).order('name')).data || [];
@@ -132,11 +149,13 @@ export function AppProvider({ children }) {
 
   const loadProfile = useCallback(async (userId) => {
     // The DB trigger creates the profile (and, for the first account, the coach + settings rows) at signup.
+    if (lockedRef.current) return null;
     let { data: p } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
     if (!p) {
       await new Promise((r) => setTimeout(r, 700));
       ({ data: p } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle());
     }
+    if (lockedRef.current) return null; // locked while the query was in flight: discard
     if (!p) { setProfile(null); setBooting(false); return null; }
     setProfile(p);
     setTab(p.role === 'coach' ? 'calendar' : 'booking');
@@ -149,31 +168,50 @@ export function AppProvider({ children }) {
     // getSession() and the SIGNED_IN event both fire on boot (incl. an email-confirmation landing with
     // #access_token=...), and supabase-js re-emits SIGNED_IN whenever the tab becomes visible again.
     // Load the profile once per user id so those repeats don't re-fetch or reset the current tab.
-    let loadedFor = null;
     const ensureProfile = (userId) => {
-      if (loadedFor === userId) return;
-      loadedFor = userId;
-      // No profile yet (trigger lag) or an error: allow a later SIGNED_IN to retry.
-      loadProfile(userId).then((p) => { if (!p && loadedFor === userId) loadedFor = null; }, () => { if (loadedFor === userId) loadedFor = null; });
+      if (loadedForRef.current === userId || lockedRef.current) return;
+      loadedForRef.current = userId;
+      // No profile yet (trigger lag), an error, or locked mid-flight: allow a later event to retry.
+      const retry = () => { if (loadedForRef.current === userId) loadedForRef.current = null; };
+      loadProfile(userId).then((p) => { if (!p) retry(); }, retry);
     };
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    const resetData = () => { loadedForRef.current = null; setProfile(null); setData(EMPTY); setSettings(DEFAULT_SETTINGS); };
+    // Every auth signal (boot, any event, another tab's lock change, a finished reset) goes through the gate.
+    const applyAuth = (evt, s) => {
+      sessionRef.current = s;
+      const { locked } = gateRef.current.evaluate(evt, s);
+      lockedRef.current = locked;
+      setRecovering(locked);
       setSession(s);
-      if (s) ensureProfile(s.user.id); else { setBooting(false); setRecovering(false); }
-      // supabase-js clears the token hash via location.hash = '', which leaves a bare '#'; drop it.
-      if (typeof window !== 'undefined' && window.location.href.endsWith('#')) {
-        window.history.replaceState(window.history.state, '', window.location.href.slice(0, -1));
+      if (!s) { resetData(); setBooting(false); return; }
+      if (locked) { resetData(); setBooting(false); return; } // reset screen only; nothing loads
+      if (shouldLoadData({ session: s, locked })) {
+        // Just unlocked (or first load): show the spinner, not "couldn't load your profile", while loading.
+        if (loadedForRef.current !== s.user.id) setBooting(true);
+        setTimeout(() => ensureProfile(s.user.id), 0);
+      }
+    };
+    applyAuthRef.current = applyAuth;
+
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      applyAuth('INITIAL', s);
+      if (typeof window !== 'undefined') {
+        // Drop error params from an expired/invalid email link, and the bare '#' supabase-js leaves behind.
+        const cleaned = cleanAuthUrl(window.location.href);
+        if (cleaned) window.history.replaceState(window.history.state, '', cleaned);
+        if (LANDING_AUTH_ERROR && s) toast(LANDING_AUTH_ERROR.message);
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((evt, s) => {
-      setSession(s);
-      // PASSWORD_RECOVERY carries a real session: load the profile as for SIGNED_IN (deduped per user id)
-      // but keep the user on the reset screen until they set a new password or sign out.
-      if (evt === 'PASSWORD_RECOVERY') setRecovering(true);
-      if ((evt === 'SIGNED_IN' || evt === 'PASSWORD_RECOVERY') && s) { const id = s.user.id; setTimeout(() => ensureProfile(id), 0); }
-      if (evt === 'SIGNED_OUT') { loadedFor = null; setRecovering(false); setProfile(null); setData(EMPTY); setSettings(DEFAULT_SETTINGS); setBooting(false); }
+      if (evt === 'SIGNED_OUT') gateRef.current.clear();
+      applyAuth(evt, s);
     });
-    return () => subscription.unsubscribe();
-  }, [loadProfile]);
+    // Another tab locked / finished / signed out: re-evaluate against our current session.
+    const unsubscribeLock = subscribeLockChanges(typeof window !== 'undefined' ? window : null, () => {
+      if (sessionRef.current) applyAuth('STORAGE', sessionRef.current);
+    });
+    return () => { subscription.unsubscribe(); unsubscribeLock(); };
+  }, [loadProfile, toast]);
 
   /** Save settings by UPSERT on coach_id (the row exists from signup; upsert also heals a missing row). */
   const saveSettings = useCallback(async (patch) => {
@@ -193,14 +231,25 @@ export function AppProvider({ children }) {
     if (!error) reload();
   }, [reload]);
 
-  const signOut = useCallback(async () => { setRecovering(false); await supabase.auth.signOut(); }, []);
-  const finishRecovery = useCallback(() => setRecovering(false), []);
+  // The lock is cleared by the SIGNED_OUT event (this tab, and other tabs via supabase-js's BroadcastChannel).
+  // If sign-out fails the session is still stored, so stay gated on it (re-evaluated, fails closed).
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) { toast('Could not sign out. Please try again.'); applyAuthRef.current('SIGNOUT_FAILED', sessionRef.current); }
+  }, [toast]);
+  /** Call only after updateUser({ password }) succeeded: unlock this session (in every tab) and load the app. */
+  const finishRecovery = useCallback(() => {
+    const s = sessionRef.current;
+    gateRef.current.complete(s);
+    applyAuthRef.current('RECOVERY_COMPLETE', s);
+  }, []);
+  const dismissAuthError = useCallback(() => setAuthError(''), []);
   const styles = useMemo(() => makeStyles(isMobile), [isMobile]);
 
   const value = {
     supabase, session, profile, isCoach, booting, data, settings, saveSettings,
     reload: () => reload(), toast, notify, nav, consumeNavParams, tab, setTab, isMobile, styles, signOut,
-    recovering, finishRecovery,
+    recovering, finishRecovery, authError, dismissAuthError,
   };
   return (
     <Ctx.Provider value={value}>

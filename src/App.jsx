@@ -38,7 +38,7 @@ const CLIENT_TABS = [
 ];
 
 function AuthScreen() {
-  const { styles: l, toast } = useApp();
+  const { styles: l, toast, authError, dismissAuthError } = useApp();
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,12 +47,13 @@ function AuthScreen() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const switchMode = (m) => { setMode(m); setError(''); setNotice(''); };
+  const switchMode = (m) => { setMode(m); setError(''); setNotice(''); dismissAuthError(); };
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
     setNotice('');
+    dismissAuthError();
     setBusy(true);
     try {
       if (mode === 'reset') {
@@ -93,6 +94,7 @@ function AuthScreen() {
           </div>
         )}
         {mode === 'reset' && <h2 style={{ ...l.cardTitle, marginTop: 0, marginBottom: 8 }}>Reset your password</h2>}
+        {!error && authError && <div style={l.error} role="alert">{authError}</div>}
         {error && <div style={l.error}>{error}</div>}
         {notice && <div style={{ ...l.error, ...l.badgeInfo }}>{notice}</div>}
         {mode === 'reset' ? (
@@ -197,9 +199,12 @@ function SetNewPasswordScreen() {
 export default function App() {
   const { styles: l, session, profile, booting, isCoach, tab, setTab, signOut, recovering } = useApp();
 
-  // Recovery wins over everything (incl. the SIGNED_IN that accompanies it and the profile load,
-  // which continues in the background so the app is ready once the new password is saved).
-  if (recovering && session) return <SetNewPasswordScreen />;
+  // A recovery session is locked to the reset screen until the new password is saved (or sign-out).
+  // Nothing else renders and nothing loads while locked (see recoveryLock.js / context.jsx).
+  if (recovering) {
+    if (session) return <SetNewPasswordScreen />;
+    return <div style={l.loading}><div style={l.spinner}>⛸️</div><div>Loading...</div></div>;
+  }
   if (booting) {
     return (
       <div style={l.loading}>
