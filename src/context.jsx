@@ -3,6 +3,11 @@ import { supabase } from './lib/supabase.js';
 import { makeStyles } from './ui/styles.js';
 import { toISODate } from './lib/format.js';
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_MILEAGE_RATE, DEFAULT_LATE_CANCEL_HOURS } from './lib/constants.js';
+import { isRecoveryHash } from './lib/passwordReset.js';
+
+// Captured at module load, before supabase-js finishes processing (and clears) the URL hash, so a
+// recovery landing shows the "Set a new password" screen from the first render.
+const LANDED_ON_RECOVERY = typeof window !== 'undefined' && isRecoveryHash(window.location.hash);
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -44,6 +49,9 @@ export function AppProvider({ children }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [tab, setTab] = useState('calendar');
   const [navParams, setNavParams] = useState(null);
+  // True while the user arrived via a password-reset link and hasn't set a new password yet.
+  // App renders the reset screen instead of the app while this is set (it wins over SIGNED_IN).
+  const [recovering, setRecovering] = useState(LANDED_ON_RECOVERY);
   const toastTimer = useRef(null);
   const profileRef = useRef(null);
   profileRef.current = profile;
@@ -150,7 +158,7 @@ export function AppProvider({ children }) {
     };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
-      if (s) ensureProfile(s.user.id); else setBooting(false);
+      if (s) ensureProfile(s.user.id); else { setBooting(false); setRecovering(false); }
       // supabase-js clears the token hash via location.hash = '', which leaves a bare '#'; drop it.
       if (typeof window !== 'undefined' && window.location.href.endsWith('#')) {
         window.history.replaceState(window.history.state, '', window.location.href.slice(0, -1));
@@ -158,8 +166,11 @@ export function AppProvider({ children }) {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((evt, s) => {
       setSession(s);
-      if (evt === 'SIGNED_IN' && s) { const id = s.user.id; setTimeout(() => ensureProfile(id), 0); }
-      if (evt === 'SIGNED_OUT') { loadedFor = null; setProfile(null); setData(EMPTY); setSettings(DEFAULT_SETTINGS); setBooting(false); }
+      // PASSWORD_RECOVERY carries a real session: load the profile as for SIGNED_IN (deduped per user id)
+      // but keep the user on the reset screen until they set a new password or sign out.
+      if (evt === 'PASSWORD_RECOVERY') setRecovering(true);
+      if ((evt === 'SIGNED_IN' || evt === 'PASSWORD_RECOVERY') && s) { const id = s.user.id; setTimeout(() => ensureProfile(id), 0); }
+      if (evt === 'SIGNED_OUT') { loadedFor = null; setRecovering(false); setProfile(null); setData(EMPTY); setSettings(DEFAULT_SETTINGS); setBooting(false); }
     });
     return () => subscription.unsubscribe();
   }, [loadProfile]);
@@ -182,12 +193,14 @@ export function AppProvider({ children }) {
     if (!error) reload();
   }, [reload]);
 
-  const signOut = useCallback(async () => { await supabase.auth.signOut(); }, []);
+  const signOut = useCallback(async () => { setRecovering(false); await supabase.auth.signOut(); }, []);
+  const finishRecovery = useCallback(() => setRecovering(false), []);
   const styles = useMemo(() => makeStyles(isMobile), [isMobile]);
 
   const value = {
     supabase, session, profile, isCoach, booting, data, settings, saveSettings,
     reload: () => reload(), toast, notify, nav, consumeNavParams, tab, setTab, isMobile, styles, signOut,
+    recovering, finishRecovery,
   };
   return (
     <Ctx.Provider value={value}>

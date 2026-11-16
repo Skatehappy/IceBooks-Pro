@@ -14,6 +14,10 @@ import SettingsView from './views/SettingsView.jsx';
 import Notifications from './ui/Notifications.jsx';
 import { supabase } from './lib/supabase.js';
 import { appBaseUrl } from './lib/authRedirect.js';
+import { validateNewPassword, isRateLimitError, MIN_PASSWORD_LENGTH, RESET_SENT_MESSAGE } from './lib/passwordReset.js';
+
+// Text-style button for in-card links ("Forgot password?", "Back to sign in").
+const LINK_BTN = { background: 'none', border: 'none', padding: 0, color: '#7c3aed', cursor: 'pointer', fontSize: 14, fontWeight: 500 };
 
 const COACH_TABS = [
   { id: 'calendar', label: '📅 Calendar', View: CalendarView },
@@ -40,14 +44,23 @@ function AuthScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const switchMode = (m) => { setMode(m); setError(''); setNotice(''); };
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setBusy(true);
     try {
-      if (mode === 'signin') {
+      if (mode === 'reset') {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: appBaseUrl(window.location) });
+        // Only a rate limit is surfaced; every other outcome gets the same neutral message (no account enumeration).
+        if (err && isRateLimitError(err)) throw err;
+        setNotice(RESET_SENT_MESSAGE);
+      } else if (mode === 'signin') {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
       } else {
@@ -73,11 +86,30 @@ function AuthScreen() {
         <div style={l.authLogo}>⛸️</div>
         <h1 style={l.authTitle}>IceBooks Pro</h1>
         <p style={l.authSub}>Figure Skating Coach Management</p>
-        <div style={l.authTabs}>
-          <button type="button" style={{ ...l.authTab, ...(mode === 'signin' ? l.authTabActive : {}) }} onClick={() => setMode('signin')}>Sign In</button>
-          <button type="button" style={{ ...l.authTab, ...(mode === 'signup' ? l.authTabActive : {}) }} onClick={() => setMode('signup')}>Sign Up</button>
-        </div>
+        {mode !== 'reset' && (
+          <div style={l.authTabs}>
+            <button type="button" style={{ ...l.authTab, ...(mode === 'signin' ? l.authTabActive : {}) }} onClick={() => switchMode('signin')}>Sign In</button>
+            <button type="button" style={{ ...l.authTab, ...(mode === 'signup' ? l.authTabActive : {}) }} onClick={() => switchMode('signup')}>Sign Up</button>
+          </div>
+        )}
+        {mode === 'reset' && <h2 style={{ ...l.cardTitle, marginTop: 0, marginBottom: 8 }}>Reset your password</h2>}
         {error && <div style={l.error}>{error}</div>}
+        {notice && <div style={{ ...l.error, ...l.badgeInfo }}>{notice}</div>}
+        {mode === 'reset' ? (
+          <form onSubmit={submit}>
+            <p style={{ ...l.authSub, textAlign: 'left', marginTop: 0 }}>Enter your account email and we'll send you a link to set a new password.</p>
+            <div style={l.formGroup}>
+              <label style={l.label}>Email</label>
+              <input style={l.input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+            </div>
+            <button type="submit" disabled={busy} style={{ ...l.btn, ...l.btnPrimary, width: '100%' }}>
+              {busy ? 'Sending...' : 'Send reset link'}
+            </button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <button type="button" style={LINK_BTN} onClick={() => switchMode('signin')}>Back to sign in</button>
+            </div>
+          </form>
+        ) : (
         <form onSubmit={submit}>
           {mode === 'signup' && (
             <div style={l.formGroup}>
@@ -96,6 +128,66 @@ function AuthScreen() {
           <button type="submit" disabled={busy} style={{ ...l.btn, ...l.btnPrimary, width: '100%' }}>
             {mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
+          {mode === 'signin' && (
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <button type="button" style={LINK_BTN} onClick={() => switchMode('reset')}>Forgot password?</button>
+            </div>
+          )}
+        </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Shown instead of the app after landing from a password-reset email (the recovery session is live). */
+function SetNewPasswordScreen() {
+  const { styles: l, toast, finishRecovery, signOut } = useApp();
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const invalid = validateNewPassword(password, confirm);
+    setError(invalid);
+    if (invalid) return;
+    setBusy(true);
+    try {
+      const { error: err } = await supabase.auth.updateUser({ password });
+      if (err) throw err;
+      toast('Password updated');
+      finishRecovery();
+    } catch (err) {
+      setError(err.message || 'Could not update password');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={l.authContainer}>
+      <div style={l.authCard}>
+        <div style={l.authLogo}>⛸️</div>
+        <h1 style={l.authTitle}>IceBooks Pro</h1>
+        <p style={l.authSub}>Set a new password</p>
+        {error && <div style={l.error}>{error}</div>}
+        <form onSubmit={submit}>
+          <div style={l.formGroup}>
+            <label style={l.label}>New password</label>
+            <input style={l.input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={MIN_PASSWORD_LENGTH} autoComplete="new-password" />
+          </div>
+          <div style={l.formGroup}>
+            <label style={l.label}>Confirm new password</label>
+            <input style={l.input} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" required minLength={MIN_PASSWORD_LENGTH} autoComplete="new-password" />
+          </div>
+          <button type="submit" disabled={busy} style={{ ...l.btn, ...l.btnPrimary, width: '100%' }}>
+            {busy ? 'Saving...' : 'Set new password'}
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button type="button" style={LINK_BTN} onClick={signOut}>Cancel and sign out</button>
+          </div>
         </form>
       </div>
     </div>
@@ -103,8 +195,11 @@ function AuthScreen() {
 }
 
 export default function App() {
-  const { styles: l, session, profile, booting, isCoach, tab, setTab, signOut } = useApp();
+  const { styles: l, session, profile, booting, isCoach, tab, setTab, signOut, recovering } = useApp();
 
+  // Recovery wins over everything (incl. the SIGNED_IN that accompanies it and the profile load,
+  // which continues in the background so the app is ready once the new password is saved).
+  if (recovering && session) return <SetNewPasswordScreen />;
   if (booting) {
     return (
       <div style={l.loading}>
