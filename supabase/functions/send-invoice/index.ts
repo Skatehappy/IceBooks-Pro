@@ -1,14 +1,14 @@
 // send-invoice: POST { invoice_id } with the coach's JWT.
 // Loads invoice + client + settings with the CALLER's JWT (RLS applies: only the owning coach can read them),
 // emails the client through the Resend REST API and marks the invoice sent.
-// Env: RESEND_API_KEY, RESEND_FROM (e.g. "IceBooks <invoices@yourdomain.com>"); SUPABASE_URL / SUPABASE_ANON_KEY
+// Env: RESEND_API_KEY (required); RESEND_FROM_ADDRESS (optional, default invoices@mail.sk8happy.com).
+// From = "<settings.coach_name> <address>", Reply-To = settings.coach_email. SUPABASE_URL / SUPABASE_ANON_KEY
 // are injected by the Supabase runtime.
 // Errors are JSON { error: <code>, message? }:
 //   unauthorized | bad_request | not_found | invoice_void | client_has_no_email | email_not_configured | email_failed
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { corsHeaders, json } from '../_shared/cors.ts';
-
-const money = (n: unknown) => `$${(Number(n) || 0).toFixed(2)}`;
+import { buildFromHeader, formatCents, pickReplyTo, stripHeaderUnsafe, toCents } from './sender.ts';
 
 const esc = (s: unknown) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -76,20 +76,22 @@ Deno.serve(async (req) => {
   if (!client.email) return json({ error: 'client_has_no_email', message: 'Client has no email address' }, 422);
 
   const apiKey = Deno.env.get('RESEND_API_KEY');
-  const from = Deno.env.get('RESEND_FROM');
-  if (!apiKey || !from) {
-    return json({ error: 'email_not_configured', message: 'Set RESEND_API_KEY and RESEND_FROM for the send-invoice function' }, 503);
+  if (!apiKey) {
+    return json({ error: 'email_not_configured', message: 'Set RESEND_API_KEY for the send-invoice function' }, 503);
   }
 
   const coachName = settings?.coach_name || profile?.name || 'Your Coach';
-  const replyTo = settings?.coach_email || profile?.email || user.email || undefined;
-  const total = Number(inv.total || inv.amount || 0);
-  const paid = Number(inv.amount_paid || 0);
-  const balance = Math.max(total - paid, 0);
+  const from = buildFromHeader(settings?.coach_name || profile?.name, Deno.env.get('RESEND_FROM_ADDRESS'));
+  const replyTo = pickReplyTo(settings?.coach_email, profile?.email, user.email);
+  // Money in integer cents (no float drift).
+  const totalC = toCents(inv.total || inv.amount || 0);
+  const paidC = toCents(inv.amount_paid || 0);
+  const balanceC = Math.max(totalC - paidC, 0);
+  const total = formatCents(totalC), paid = formatCents(paidC), balance = formatCents(balanceC);
   const methods = paymentMethods(inv);
   const policy = (settings?.cancellation_policy || '').trim();
   const dueText = fmtDate(inv.due_date);
-  const subject = `Invoice #${inv.id} from ${coachName} - ${money(balance)} due`;
+  const subject = stripHeaderUnsafe(`Invoice #${inv.id} from ${coachName} - ${balance} due`);
 
   const text = [
     `Hi ${client.name},`,
@@ -97,9 +99,9 @@ Deno.serve(async (req) => {
     'Please find your invoice details below:',
     '',
     `Invoice #: ${inv.id}`,
-    `Invoice Total: ${money(total)}`,
-    paid > 0 ? `Paid to Date: ${money(paid)}` : '',
-    `Balance Due: ${money(balance)}`,
+    `Invoice Total: ${total}`,
+    paidC > 0 ? `Paid to Date: ${paid}` : '',
+    `Balance Due: ${balance}`,
     `Due Date: ${dueText}`,
     inv.notes ? `Notes: ${inv.notes}` : '',
     '',
@@ -121,9 +123,9 @@ Deno.serve(async (req) => {
 <div style="color:#6b7280;margin-bottom:20px">from ${esc(coachName)}</div>
 <p>Hi ${esc(client.name)},</p><p>Please find your invoice details below:</p>
 <table style="width:100%;border-collapse:collapse;margin:12px 0 20px">
-${row('Invoice Total', money(total))}
-${paid > 0 ? row('Paid to Date', money(paid)) : ''}
-${row('Balance Due', money(balance), true)}
+${row('Invoice Total', total)}
+${paidC > 0 ? row('Paid to Date', paid) : ''}
+${row('Balance Due', balance, true)}
 ${row('Due Date', dueText)}
 </table>
 ${inv.notes ? `<p><strong>Notes:</strong> ${esc(inv.notes)}</p>` : ''}

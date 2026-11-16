@@ -81,7 +81,7 @@ supabase link --project-ref <ref>
 supabase db push                       # applies supabase/migrations/*.sql in order
 supabase functions deploy send-invoice
 supabase functions deploy calendar-feed --no-verify-jwt
-supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="IceBooks <invoices@yourdomain.com>"
+supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM_ADDRESS=invoices@mail.sk8happy.com
 ```
 **Management API / SQL editor**: run the three files in order (`POST https://api.supabase.com/v1/projects/<ref>/database/query`
 with `{"query": "<file contents>"}` and a personal access token, or paste into Dashboard → SQL Editor).

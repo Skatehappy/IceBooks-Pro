@@ -6,5 +6,5 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: { outDir: 'dist', sourcemap: false },
-  test: { environment: 'node', include: ['src/**/*.test.js', 'src/**/*.test.jsx', 'tests/**/*.test.js'] },
+  test: { environment: 'node', include: ['src/**/*.test.js', 'src/**/*.test.jsx', 'tests/**/*.test.js', 'supabase/functions/**/*.test.ts'] },
 });

@@ -1,5 +1,5 @@
 # Supabase CLI config (only the parts IceBooks needs). `supabase link --project-ref <ref>` first.
-# Function secrets are NOT stored here:  supabase secrets set RESEND_API_KEY=... RESEND_FROM="IceBooks <invoices@yourdomain>"
+# Function secrets are NOT stored here:  supabase secrets set RESEND_API_KEY=... RESEND_FROM_ADDRESS=invoices@mail.sk8happy.com  (display name = coach name from settings)
 
 [api]
 schemas = ["public", "graphql_public"]   # the "private" schema (helpers/triggers) is intentionally NOT exposed
