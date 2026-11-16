@@ -4,7 +4,7 @@ import readXlsxFile from 'read-excel-file/node';
 import {
   TEMPLATE_COLUMNS, TEMPLATE_EXAMPLE_ROWS, normalizeHeader, normEmail, normName, normPhone, toISODateValue,
   excelSerialToISO, parseCsvText, rowsFromMatrix, planImport, planFromMatrix, applyImportPlan, chunk,
-  templateCsvText, templateXlsxData,
+  templateCsvText, templateXlsxData, sheetRows,
 } from './clientImport.js';
 
 const HEADER = TEMPLATE_COLUMNS.join(',');
@@ -39,7 +39,7 @@ describe('template', () => {
   });
   it('XLSX template round-trips through the importer', async () => {
     const buf = await writeXlsxFile(templateXlsxData(), { buffer: true });
-    const matrix = await readXlsxFile(buf);
+    const matrix = sheetRows(await readXlsxFile(buf));
     expect(matrix[0]).toEqual(TEMPLATE_COLUMNS);
     const p = planFromMatrix(matrix, [], []);
     expect(p.errors).toEqual([]);
@@ -224,7 +224,7 @@ describe('xlsx / csv parity', () => {
       [null, null, null], // trailing blank row
     ];
     const buf = await writeXlsxFile(xlsxData, { buffer: true });
-    const matrix = await readXlsxFile(buf);
+    const matrix = sheetRows(await readXlsxFile(buf));
     const xlsxPlan = planFromMatrix(matrix, [], []);
 
     const strip = (p) => ({ c: p.clientsToCreate, s: p.studentsToCreate, n: p.counts, e: p.errors });
@@ -314,5 +314,18 @@ describe('applyImportPlan (batched writes, fake supabase)', () => {
     expect(r.studentsCreated).toBe(3); // Kid G, New Kid (to existing), Also Good (adult)
     expect(r.studentsAddedToExisting).toBe(1);
     expect(db.students.filter((s) => s.client_id === raceId).map((s) => s.name).sort()).toEqual(['New Kid', 'Old Kid']);
+  });
+});
+
+describe('xlsx written by other tools (regression)', () => {
+  it('reads a workbook with blank inline-string cells (openpyxl/pandas style) and plans it', async () => {
+    const { fileURLToPath } = await import('node:url');
+    const file = fileURLToPath(new URL('./__fixtures__/openpyxl-blank-cells.xlsx', import.meta.url));
+    const matrix = sheetRows(await readXlsxFile(file));
+    expect(matrix[0]).toEqual(TEMPLATE_COLUMNS);
+    const p = planFromMatrix(matrix, [], []);
+    expect(p.counts.clientsCreated).toBe(2);
+    expect(p.counts.studentsCreated).toBe(2);
+    expect(p.errors).toEqual([]);
   });
 });

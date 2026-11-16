@@ -391,11 +391,19 @@ export const downloadTemplateXlsx = async () => {
 };
 
 /** Read a user-selected File (.csv or .xlsx) into a matrix. */
+/** read-excel-file >= 7 returns [{ sheet, data }]; older versions returned the rows of the first sheet. */
+export const sheetRows = (result) => {
+  if (Array.isArray(result) && result.length && !Array.isArray(result[0]) && Array.isArray(result[0]?.data)) {
+    return (result.find((s) => s.data && s.data.length) || result[0]).data;
+  }
+  return result;
+};
+
 export const readImportFile = async (file) => {
   const name = (file?.name || '').toLowerCase();
   if (name.endsWith('.xlsx')) {
-    const { default: readXlsxFile } = await import('read-excel-file');
-    return readXlsxFile(file);
+    const { default: readXlsxFile } = await import('read-excel-file/browser');
+    return sheetRows(await readXlsxFile(file));
   }
   if (name.endsWith('.csv') || file?.type === 'text/csv') return parseCsvText(await file.text());
   throw new Error('Please choose a .csv or .xlsx file');
