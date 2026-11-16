@@ -13,6 +13,7 @@ import ReportsView from './views/ReportsView.jsx';
 import SettingsView from './views/SettingsView.jsx';
 import Notifications from './ui/Notifications.jsx';
 import { supabase } from './lib/supabase.js';
+import { appBaseUrl } from './lib/authRedirect.js';
 
 const COACH_TABS = [
   { id: 'calendar', label: '📅 Calendar', View: CalendarView },
@@ -50,7 +51,9 @@ function AuthScreen() {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
       } else {
-        const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+        const { data, error: err } = await supabase.auth.signUp({
+          email, password, options: { data: { name }, emailRedirectTo: appBaseUrl(window.location) },
+        });
         if (err) throw err;
         if (!data.session) {
           toast('Check your email to confirm your account!');

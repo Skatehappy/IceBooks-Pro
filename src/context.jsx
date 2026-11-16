@@ -129,22 +129,37 @@ export function AppProvider({ children }) {
       await new Promise((r) => setTimeout(r, 700));
       ({ data: p } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle());
     }
-    if (!p) { setProfile(null); setBooting(false); return; }
+    if (!p) { setProfile(null); setBooting(false); return null; }
     setProfile(p);
     setTab(p.role === 'coach' ? 'calendar' : 'booking');
     await reload(p);
     setBooting(false);
+    return p;
   }, [reload]);
 
   useEffect(() => {
+    // getSession() and the SIGNED_IN event both fire on boot (incl. an email-confirmation landing with
+    // #access_token=...), and supabase-js re-emits SIGNED_IN whenever the tab becomes visible again.
+    // Load the profile once per user id so those repeats don't re-fetch or reset the current tab.
+    let loadedFor = null;
+    const ensureProfile = (userId) => {
+      if (loadedFor === userId) return;
+      loadedFor = userId;
+      // No profile yet (trigger lag) or an error: allow a later SIGNED_IN to retry.
+      loadProfile(userId).then((p) => { if (!p && loadedFor === userId) loadedFor = null; }, () => { if (loadedFor === userId) loadedFor = null; });
+    };
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
-      if (s) loadProfile(s.user.id); else setBooting(false);
+      if (s) ensureProfile(s.user.id); else setBooting(false);
+      // supabase-js clears the token hash via location.hash = '', which leaves a bare '#'; drop it.
+      if (typeof window !== 'undefined' && window.location.href.endsWith('#')) {
+        window.history.replaceState(window.history.state, '', window.location.href.slice(0, -1));
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((evt, s) => {
       setSession(s);
-      if (evt === 'SIGNED_IN' && s) setTimeout(() => loadProfile(s.user.id), 0);
-      if (evt === 'SIGNED_OUT') { setProfile(null); setData(EMPTY); setSettings(DEFAULT_SETTINGS); setBooting(false); }
+      if (evt === 'SIGNED_IN' && s) { const id = s.user.id; setTimeout(() => ensureProfile(id), 0); }
+      if (evt === 'SIGNED_OUT') { loadedFor = null; setProfile(null); setData(EMPTY); setSettings(DEFAULT_SETTINGS); setBooting(false); }
     });
     return () => subscription.unsubscribe();
   }, [loadProfile]);
