@@ -1,0 +1,27 @@
+{
+  "name": "icebooks-pro",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "deploy": "npm test && npm run build && gh-pages -d dist -t -m \"Deploy IceBooks Pro\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "papaparse": "^5.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "read-excel-file": "^5.8.5",
+    "write-excel-file": "^2.0.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "gh-pages": "^6.3.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.5"
+  }
+}
