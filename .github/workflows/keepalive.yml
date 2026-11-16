@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Read one row from the project database
+      - name: Call the read-only keepalive() function (returns server time)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -20,6 +20,6 @@ jobs:
           test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY" || { echo "::error::missing secrets"; exit 1; }
           code=$(curl -sS -o /tmp/out.json -w '%{http_code}' --retry 3 --retry-delay 10 \
             -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/profiles?select=id&limit=1")
+            -X POST -H "Content-Type: application/json" -d '{}'             "$SUPABASE_URL/rest/v1/rpc/keepalive")
           echo "HTTP $code"
           [ "$code" = "200" ] || { echo "::error::keep-alive read failed ($code)"; exit 1; }
